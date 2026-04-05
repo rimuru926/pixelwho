@@ -12,5 +12,12 @@ const CHARACTERS = [
     name: "Roronoa zoro",
     image: "https://static.wikia.nocookie.net/characterprofile/images/5/50/Roronoa_Zoro.png/revision/latest?cb=20170117203410",
     quote: "Nothing happened",
+ },
+  {
+    name: "Skibid",
+    series: "Toilet",
+    image: "https://media.cnn.com/api/v1/images/stellar/prod/screen-shot-2024-07-25-at-10-27-16-am.jpg?c=16x9&q=h_653,w_1160,c_fill/f_avif",
+    quote: "Skibidi dop dop",
   },
 ];
+  
