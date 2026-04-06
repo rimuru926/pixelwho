@@ -1313,7 +1313,7 @@
     <div class="mod-tab-panel active" id="modtab-add">
 
       <!-- Saved-chars banner -->
-      <div id="saved-chars-banner" style="display:none; width:100%; background:rgba(44,182,125,0.08); border:1.5px solid rgba(44,182,125,0.25); border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <div id="saved-chars-banner" style="display:none; width:100%; background:rgba(44,182,125,0.08); border:1.5px solid rgba(44,182,125,0.25); border-radius:12px; padding:12px 14px; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
         <div style="font-size:0.82rem; color:var(--correct); font-weight:600;">
           💾 <span id="saved-chars-count">0</span> character(s) saved — will reload on next visit
         </div>
@@ -1372,6 +1372,12 @@
           <input class="mod-input" id="mod-q3" type="text" placeholder="Third quote" autocorrect="off">
         </div>
 
+      </div>
+
+      <!-- One-time quote reminder banner -->
+      <div id="no-quote-hint" style="display:none; width:100%; background:rgba(255,137,6,0.08); border:1.5px solid rgba(255,137,6,0.35); border-radius:12px; padding:12px 14px; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-size:0.82rem; color:var(--muted); flex:1; line-height:1.5;">💬 <strong style="color:var(--text)">Reminder:</strong> Characters without a quote won't appear in the Quote Quiz.</span>
+        <button id="no-quote-hint-close" style="padding:5px 12px; background:rgba(255,137,6,0.1); border:1.5px solid rgba(255,137,6,0.3); border-radius:8px; color:var(--accent); font-family:'Outfit',sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Got it ✕</button>
       </div>
 
       <button class="mod-add-btn" id="mod-add-btn">Add to Session + Generate Code</button>
@@ -2776,6 +2782,22 @@
     updateSavedBadge();
   });
 
+  // ── One-time quote reminder banner ──────────────
+  (function initNoQuoteHint() {
+    const hint = document.getElementById('no-quote-hint');
+    const closeBtn = document.getElementById('no-quote-hint-close');
+    if (localStorage.getItem('whosdat-quote-hint-dismissed')) return;
+    // Show banner the first time a character is added without a quote
+    window._showNoQuoteHintIfNeeded = function() {
+      if (localStorage.getItem('whosdat-quote-hint-dismissed')) return;
+      hint.style.display = 'flex';
+    };
+    closeBtn.addEventListener('click', () => {
+      hint.style.display = 'none';
+      localStorage.setItem('whosdat-quote-hint-dismissed', '1');
+    });
+  })();
+
   // ── Add Character ────────────────────────────────
   document.getElementById('mod-add-btn').addEventListener('click', () => {
     const name   = document.getElementById('mod-name').value.trim();
@@ -2793,6 +2815,9 @@
       else el.classList.remove('error');
     });
     if (!valid) return;
+
+    // Show one-time reminder if no quote is provided
+    if (!q1 && !q2 && !q3 && window._showNoQuoteHintIfNeeded) window._showNoQuoteHintIfNeeded();
 
     const char = { name, image };
     if (series) char.series = series;
