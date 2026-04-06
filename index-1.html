@@ -1067,6 +1067,53 @@
     }
     .sync-info-row span { flex: 1; min-width: 140px; }
 
+    /* ── Fullscreen lightbox ──────────────────────── */
+    #fs-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.92);
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 14px;
+      padding: 20px;
+      cursor: zoom-out;
+    }
+    #fs-overlay.open { display: flex; }
+    #fs-img {
+      max-width: 100%; max-height: 80vh;
+      border-radius: 14px;
+      object-fit: contain;
+      box-shadow: 0 0 80px rgba(0,0,0,0.8);
+      animation: popIn 0.2s ease;
+    }
+    #fs-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.4rem, 5vw, 2.2rem);
+      letter-spacing: 0.08em;
+      color: var(--text);
+      text-align: center;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.8);
+    }
+    #fs-close {
+      position: fixed; top: 18px; right: 18px;
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%; color: #fff; font-size: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    #fs-close:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── Expand button on game card ───────────────── */
+    #fs-expand-btn {
+      position: absolute; bottom: 10px; right: 10px; z-index: 4;
+      width: 32px; height: 32px;
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; color: #fff; font-size: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s;
+      line-height: 1;
+    }
+    .char-card:hover #fs-expand-btn { opacity: 1; }
+
   </style>
 </head>
 <body>
@@ -1138,6 +1185,7 @@
         <div class="result-icon" id="result-icon"></div>
         <div class="result-name" id="result-name"></div>
       </div>
+      <button id="fs-expand-btn" onclick="openLightbox(document.getElementById('char-img').src, null)" title="View full image">⤢</button>
     </div>
     <div class="guess-dots">
       <div class="dot" id="d0"></div><div class="dot" id="d1"></div>
@@ -1175,6 +1223,13 @@
   <!-- Milestone overlay (outside game section, always in DOM) -->
   <div id="milestone-overlay">
     <div id="milestone-text"></div>
+  </div>
+
+  <!-- Fullscreen image lightbox -->
+  <div id="fs-overlay" onclick="closeLightbox()">
+    <button id="fs-close" onclick="closeLightbox()">✕</button>
+    <img id="fs-img" src="" alt="">
+    <div id="fs-name"></div>
   </div>
 
   <!-- ══════════ TIER LIST SECTION ══════════ -->
@@ -3428,6 +3483,57 @@
         if (activeId === 'game-section') { resetPool(); loadNext(); }
       }
     }).catch(() => {}); // silently fail if offline
+  }
+
+  // ═══════════════════════════════════════════════════
+  //  FULLSCREEN LIGHTBOX
+  // ═══════════════════════════════════════════════════
+  function openLightbox(src, name) {
+    const ov = document.getElementById('fs-overlay');
+    document.getElementById('fs-img').src = src;
+    const nm = document.getElementById('fs-name');
+    nm.textContent = name || '';
+    nm.style.display = name ? '' : 'none';
+    ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('fs-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  // Stop click on the image/name from closing (only the backdrop closes)
+  document.getElementById('fs-img').addEventListener('click', e => e.stopPropagation());
+  document.getElementById('fs-name').addEventListener('click', e => e.stopPropagation());
+
+  // ── Tierlist long-press to open lightbox ──────────
+  function addLongPress(el, fn) {
+    let timer = null;
+    const start = e => { timer = setTimeout(() => { fn(); timer = null; }, 500); };
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchend',   cancel);
+    el.addEventListener('touchmove',  cancel);
+    el.addEventListener('mousedown',  start);
+    el.addEventListener('mouseup',    cancel);
+    el.addEventListener('mouseleave', cancel);
+  }
+
+  // Patch buildMiniCard to include long-press
+  const _origBuildMiniCard = buildMiniCard;
+  buildMiniCard = function(char, tierId) {
+    const card = _origBuildMiniCard(char, tierId);
+    addLongPress(card, () => {
+      clearSel();
+      openLightbox(char.image, char.name);
+    });
+    return card;
+  };
+
+  // Also show the expand button on mobile (always visible on touch devices)
+  if ('ontouchstart' in window) {
+    document.getElementById('fs-expand-btn').style.opacity = '1';
   }
 
   initGame();
