@@ -679,6 +679,51 @@
     .mod-img-preview.has-img img { display: block; }
     .mod-img-preview.has-img .preview-placeholder { display: none; }
 
+    /* Image input row (text + upload button) */
+    .mod-img-input-row {
+      display: flex; gap: 8px; align-items: stretch;
+    }
+    .mod-img-input-row .mod-input { flex: 1; min-width: 0; }
+    .mod-upload-btn {
+      flex-shrink: 0; padding: 0 14px;
+      background: var(--surface2); border: 1.5px solid var(--border);
+      border-radius: 10px; color: var(--muted);
+      font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .mod-upload-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .mod-upload-btn.loaded { color: var(--correct); border-color: var(--correct); }
+
+    /* Image download button */
+    .mod-img-dl-btn {
+      width: 100%; padding: 10px; border: 1.5px solid var(--border);
+      border-radius: 10px; background: var(--surface2);
+      color: var(--muted); font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: color 0.15s, border-color 0.15s; display: none;
+    }
+    .mod-img-dl-btn.show { display: block; }
+    .mod-img-dl-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* Series autocomplete */
+    .series-ac-wrap { position: relative; }
+    .series-ac-list {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; display: none; z-index: 60;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4); max-height: 180px; overflow-y: auto;
+    }
+    .series-ac-list.open { display: block; }
+    .series-ac-item {
+      padding: 11px 14px; cursor: pointer; font-size: 0.9rem; font-weight: 500;
+      border-bottom: 1px solid var(--border); transition: background 0.1s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .series-ac-item:last-child { border-bottom: none; }
+    .series-ac-item:hover { background: rgba(255,137,6,0.1); color: var(--accent); }
+    .series-ac-count { font-size: 0.72rem; color: var(--muted); }
+
     /* Add button */
     .mod-add-btn {
       width: 100%; padding: 14px; border: none; border-radius: 12px;
@@ -1220,12 +1265,20 @@
 
         <div class="mod-field">
           <div class="mod-label">Series <span class="opt">optional</span></div>
-          <input class="mod-input" id="mod-series" type="text" placeholder="e.g. One Piece" autocorrect="off" autocomplete="off">
+          <div class="series-ac-wrap">
+            <input class="mod-input" id="mod-series" type="text" placeholder="e.g. One Piece" autocorrect="off" autocomplete="off">
+            <div class="series-ac-list" id="mod-series-ac"></div>
+          </div>
         </div>
 
         <div class="mod-field">
-          <div class="mod-label">Image URL or path <span class="req">REQUIRED</span></div>
-          <input class="mod-input" id="mod-image" type="text" placeholder="https://… or images/zoro.jpg" autocorrect="off" autocomplete="off" spellcheck="false">
+          <div class="mod-label">Image <span class="req">REQUIRED</span></div>
+          <div class="mod-img-input-row">
+            <input class="mod-input" id="mod-image" type="text" placeholder="https://… or images/zoro.jpg" autocorrect="off" autocomplete="off" spellcheck="false">
+            <button class="mod-upload-btn" id="mod-upload-btn" title="Upload from device">📁 Upload</button>
+            <input type="file" id="mod-file-input" accept="image/*" style="display:none">
+          </div>
+          <button class="mod-img-dl-btn" id="mod-img-dl-btn">⬇ Save image to device</button>
           <div class="mod-img-preview" id="mod-img-preview">
             <img id="mod-preview-img" src="" alt="preview">
             <div class="preview-placeholder">Image preview will appear here</div>
@@ -1528,7 +1581,7 @@
     }
     resetPool(); loadNext();
   }
-  function resetPool(){ pool=[...filteredChars()].sort(()=>Math.random()-0.5); if(!pool.length) pool=[...CHARACTERS].sort(()=>Math.random()-0.5); }
+  function resetPool(){ pool=[...filteredChars()].sort(()=>Math.random()-0.5); if(!pool.length) pool=[...(window.CHARACTERS||[])].sort(()=>Math.random()-0.5); }
 
   function clearGameUI() {
     guessesLeft = cropMode ? 6 : 5;
@@ -2336,24 +2389,148 @@
       document.querySelectorAll('.mod-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'modtab-' + btn.dataset.modtab));
       if (btn.dataset.modtab === 'convert') renderUrlConverter();
       if (btn.dataset.modtab === 'edit') { renderEditList(document.getElementById('edit-search').value); closeEditForm(); }
-      if (btn.dataset.modtab === 'add') renderNoQuote();
+      if (btn.dataset.modtab === 'add') { renderNoQuote(); modSeriesAc.classList.remove('open'); }
     });
+  });
+
+  // ── Series autocomplete ──────────────────────────
+  const modSeriesInput = document.getElementById('mod-series');
+  const modSeriesAc    = document.getElementById('mod-series-ac');
+
+  function getKnownSeries() {
+    const all = window.CHARACTERS || [];
+    const counts = {};
+    all.forEach(c => { if (c.series) counts[c.series] = (counts[c.series] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }
+
+  function openSeriesAc(filter) {
+    const series = getKnownSeries();
+    const q = (filter || '').trim().toLowerCase();
+    const matches = q
+      ? series.filter(([s]) => s.toLowerCase().includes(q))
+      : series;
+    if (!matches.length) { modSeriesAc.classList.remove('open'); return; }
+    modSeriesAc.innerHTML = matches.map(([s, n]) =>
+      `<div class="series-ac-item" data-series="${s.replace(/"/g,'&quot;')}">
+        <span>${s}</span><span class="series-ac-count">${n} char${n>1?'s':''}</span>
+      </div>`
+    ).join('');
+    modSeriesAc.classList.add('open');
+  }
+
+  modSeriesInput.addEventListener('focus', () => openSeriesAc(modSeriesInput.value));
+  modSeriesInput.addEventListener('input', () => openSeriesAc(modSeriesInput.value));
+  modSeriesAc.addEventListener('mousedown', e => {
+    const item = e.target.closest('.series-ac-item');
+    if (!item) return;
+    e.preventDefault();
+    modSeriesInput.value = item.dataset.series;
+    modSeriesAc.classList.remove('open');
+  });
+  modSeriesAc.addEventListener('touchstart', e => {
+    const item = e.target.closest('.series-ac-item');
+    if (!item) return;
+    e.preventDefault();
+    modSeriesInput.value = item.dataset.series;
+    modSeriesAc.classList.remove('open');
+    modSeriesInput.blur();
+  }, { passive: false });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.series-ac-wrap')) modSeriesAc.classList.remove('open');
   });
 
   // ── Image preview as user types ─────────────────
   const modImageInput = document.getElementById('mod-image');
   const modPreviewWrap = document.getElementById('mod-img-preview');
   const modPreviewImg = document.getElementById('mod-preview-img');
+  const modImgDlBtn   = document.getElementById('mod-img-dl-btn');
 
   modImageInput.addEventListener('input', () => {
     const val = modImageInput.value.trim();
-    if (!val) { modPreviewWrap.classList.remove('has-img'); modPreviewImg.src = ''; return; }
+    if (!val) {
+      modPreviewWrap.classList.remove('has-img'); modPreviewImg.src = '';
+      modImgDlBtn.classList.remove('show');
+      return;
+    }
     modPreviewImg.onload = () => modPreviewWrap.classList.add('has-img');
     modPreviewImg.onerror = () => modPreviewWrap.classList.remove('has-img');
     modPreviewImg.src = val;
+    // Show download button only for URLs (not local paths)
+    modImgDlBtn.classList.toggle('show', /^https?:\/\//i.test(val));
   });
 
-  // ── Generate code block from a char object ──────
+  // ── Image download button ────────────────────────
+  modImgDlBtn.addEventListener('click', () => {
+    const url = modImageInput.value.trim();
+    if (!url) return;
+    // Suggest a filename from the character name field or URL
+    const charName = document.getElementById('mod-name').value.trim();
+    const ext = url.split('?')[0].split('.').pop().toLowerCase() || 'jpg';
+    const filename = charName
+      ? charName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g,'') + '.' + (ext.length <= 4 ? ext : 'jpg')
+      : 'character.' + (ext.length <= 4 ? ext : 'jpg');
+
+    // Try fetch + blob download (works if server allows CORS)
+    modImgDlBtn.textContent = '⏳ Downloading…';
+    modImgDlBtn.disabled = true;
+    fetch(url)
+      .then(r => {
+        if (!r.ok) throw new Error('blocked');
+        return r.blob();
+      })
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        modImgDlBtn.textContent = '✓ Downloaded! Drop it in your /images folder';
+        modImgDlBtn.style.color = 'var(--correct)';
+        modImgDlBtn.style.borderColor = 'var(--correct)';
+        setTimeout(() => {
+          modImgDlBtn.textContent = '⬇ Save image to device';
+          modImgDlBtn.style.color = '';
+          modImgDlBtn.style.borderColor = '';
+          modImgDlBtn.disabled = false;
+        }, 3000);
+      })
+      .catch(() => {
+        // CORS blocked — fall back to opening in new tab
+        window.open(url, '_blank');
+        modImgDlBtn.textContent = '↗ Opened in new tab — long-press to save';
+        modImgDlBtn.style.color = 'var(--accent)';
+        setTimeout(() => {
+          modImgDlBtn.textContent = '⬇ Save image to device';
+          modImgDlBtn.style.color = '';
+          modImgDlBtn.disabled = false;
+        }, 3500);
+      });
+  });
+
+  // ── File upload → base64 ────────────────────────
+  const modFileInput  = document.getElementById('mod-file-input');
+  const modUploadBtn  = document.getElementById('mod-upload-btn');
+
+  modUploadBtn.addEventListener('click', () => modFileInput.click());
+
+  modFileInput.addEventListener('change', () => {
+    const file = modFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      modImageInput.value = dataUrl;
+      modPreviewImg.onload = () => modPreviewWrap.classList.add('has-img');
+      modPreviewImg.src = dataUrl;
+      modImgDlBtn.classList.remove('show'); // no need to download what they uploaded
+      modUploadBtn.textContent = '✓ ' + file.name;
+      modUploadBtn.classList.add('loaded');
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be re-selected
+    modFileInput.value = '';
+  });
   function charToCode(c) {
     const lines = ['  {'];
     lines.push(`    name: ${JSON.stringify(c.name)},`);
@@ -2429,6 +2606,8 @@
     // Clear form
     ['mod-name','mod-series','mod-image','mod-q1','mod-q2','mod-q3'].forEach(id => document.getElementById(id).value = '');
     modPreviewWrap.classList.remove('has-img'); modPreviewImg.src = '';
+    modImgDlBtn.classList.remove('show');
+    modUploadBtn.textContent = '📁 Upload'; modUploadBtn.classList.remove('loaded');
   });
 
   // Remove error highlight on input
@@ -2469,54 +2648,75 @@
     });
   }
 
-  // ── URL Converter ────────────────────────────────
+  // ── URL / Base64 Converter ───────────────────────
   const urlItemPaths = {}; // name → current filename input value
 
   function isUrl(s) { return /^https?:\/\//i.test(s); }
+  function isBase64(s) { return /^data:image\//i.test(s); }
+  function needsConvert(s) { return isUrl(s) || isBase64(s); }
 
   function nameToFilename(name) {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.jpg';
   }
 
+  function downloadBase64(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  }
+
   function renderUrlConverter() {
     const all = window.CHARACTERS || [];
-    const urlChars = all.filter(c => isUrl(c.image));
-    const info = document.getElementById('url-conv-info');
-    const list = document.getElementById('url-conv-list');
+    const convertChars = all.filter(c => needsConvert(c.image));
+    const urlChars    = convertChars.filter(c => isUrl(c.image));
+    const base64Chars = convertChars.filter(c => isBase64(c.image));
+    const info  = document.getElementById('url-conv-info');
+    const list  = document.getElementById('url-conv-list');
     const genBtn = document.getElementById('url-gen-btn');
 
-    if (!urlChars.length) {
-      info.innerHTML = '✅ All <strong>' + all.length + '</strong> characters are using local paths. Nothing to convert!';
+    if (!convertChars.length) {
+      info.innerHTML = '✅ All <strong>' + all.length + '</strong> characters use local paths. Nothing to convert!';
       list.innerHTML = '';
       genBtn.style.display = 'none';
       document.getElementById('url-code-wrap').classList.remove('show');
       return;
     }
 
-    info.innerHTML = '<strong>' + urlChars.length + '</strong> of ' + all.length + ' characters use URLs. Save each image into your <strong>images/</strong> folder, then generate the updated file below.';
+    const urlCount = urlChars.length, b64Count = base64Chars.length;
+    let infoText = '';
+    if (b64Count) infoText += '<strong>' + b64Count + '</strong> uploaded image' + (b64Count>1?'s':'' ) + ' (base64) — download each, drop in <strong>images/</strong> folder. ';
+    if (urlCount) infoText += '<strong>' + urlCount + '</strong> URL image' + (urlCount>1?'s':'') + ' — save each into <strong>images/</strong> folder. ';
+    infoText += 'Then set the local path and generate the updated file.';
+    info.innerHTML = infoText;
     genBtn.style.display = '';
     list.innerHTML = '';
 
-    urlChars.forEach(c => {
+    convertChars.forEach(c => {
+      const isB64 = isBase64(c.image);
       if (!urlItemPaths[c.name]) urlItemPaths[c.name] = 'images/' + nameToFilename(c.name);
 
       const item = document.createElement('div');
       item.className = 'url-conv-item';
       item.dataset.charName = c.name;
 
+      // Top row: thumb + name + type badge
       const top = document.createElement('div'); top.className = 'url-conv-top';
       const thumb = document.createElement('img'); thumb.className = 'url-conv-thumb';
       thumb.src = c.image;
       thumb.onerror = () => { thumb.src = 'https://placehold.co/46x60/221f35/ff8906?text=?'; };
-      const meta = document.createElement('div');
+      const meta = document.createElement('div'); meta.style.flex = '1';
       const nm = document.createElement('div'); nm.className = 'url-conv-name'; nm.textContent = c.name;
-      const sr = document.createElement('div'); sr.className = 'url-conv-series'; sr.textContent = c.series || '';
+      const sr = document.createElement('div'); sr.className = 'url-conv-series';
+      sr.textContent = (c.series || '') + (isB64 ? '  📁 Uploaded image' : '  🔗 URL');
       meta.appendChild(nm); meta.appendChild(sr);
       top.appendChild(thumb); top.appendChild(meta);
 
+      // URL label (truncated for base64)
       const urlDiv = document.createElement('div'); urlDiv.className = 'url-conv-url';
-      urlDiv.textContent = c.image;
+      urlDiv.textContent = isB64 ? '[base64 image — ' + Math.round(c.image.length/1024) + ' KB]' : c.image;
 
+      // Bottom row: filename input + action button + done checkbox
       const bottom = document.createElement('div'); bottom.className = 'url-conv-bottom';
 
       const fnInput = document.createElement('input');
@@ -2524,18 +2724,34 @@
       fnInput.value = urlItemPaths[c.name];
       fnInput.addEventListener('input', () => { urlItemPaths[c.name] = fnInput.value.trim(); });
 
-      const openBtn = document.createElement('a');
-      openBtn.className = 'url-conv-open'; openBtn.href = c.image;
-      openBtn.target = '_blank'; openBtn.rel = 'noopener';
-      openBtn.innerHTML = 'Open ↗';
+      if (isB64) {
+        // Download button for base64
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'url-conv-open';
+        dlBtn.style.cursor = 'pointer';
+        dlBtn.textContent = '⬇ Download';
+        dlBtn.addEventListener('click', () => {
+          downloadBase64(c.image, urlItemPaths[c.name] || nameToFilename(c.name));
+          dlBtn.textContent = '✓ Downloaded';
+          dlBtn.style.color = 'var(--correct)';
+          setTimeout(() => { dlBtn.textContent = '⬇ Download'; dlBtn.style.color = ''; }, 2500);
+        });
+        bottom.appendChild(fnInput); bottom.appendChild(dlBtn);
+      } else {
+        // Open in new tab for URLs
+        const openBtn = document.createElement('a');
+        openBtn.className = 'url-conv-open'; openBtn.href = c.image;
+        openBtn.target = '_blank'; openBtn.rel = 'noopener';
+        openBtn.textContent = 'Open ↗';
+        bottom.appendChild(fnInput); bottom.appendChild(openBtn);
+      }
 
       const doneLabel = document.createElement('label'); doneLabel.className = 'url-conv-done-chk';
       const doneChk = document.createElement('input'); doneChk.type = 'checkbox';
       doneChk.addEventListener('change', () => { item.classList.toggle('done-item', doneChk.checked); });
       doneLabel.appendChild(doneChk);
       doneLabel.appendChild(document.createTextNode(' Done'));
-
-      bottom.appendChild(fnInput); bottom.appendChild(openBtn); bottom.appendChild(doneLabel);
+      bottom.appendChild(doneLabel);
 
       item.appendChild(top); item.appendChild(urlDiv); item.appendChild(bottom);
       list.appendChild(item);
@@ -2546,16 +2762,14 @@
     const all = window.CHARACTERS || [];
     const lines = ['const CHARACTERS = ['];
     all.forEach(c => {
-      // If this character had a URL and user set a local path, use that path
-      if (isUrl(c.image) && urlItemPaths[c.name]) {
+      if (needsConvert(c.image) && urlItemPaths[c.name]) {
         lines.push(charToCode({ ...c, image: urlItemPaths[c.name] }));
       } else {
         lines.push(charToCode(c));
       }
     });
     lines.push('];');
-    const full = lines.join('\n');
-    document.getElementById('url-code-block').textContent = full;
+    document.getElementById('url-code-block').textContent = lines.join('\n');
     document.getElementById('url-code-wrap').classList.add('show');
     document.getElementById('url-code-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
@@ -2717,7 +2931,7 @@
   function initModPanel() {
     if (!modReady) {
       modReady = true;
-      (window.CHARACTERS || []).filter(c => isUrl(c.image)).forEach(c => {
+      (window.CHARACTERS || []).filter(c => needsConvert(c.image)).forEach(c => {
         if (!urlItemPaths[c.name]) urlItemPaths[c.name] = 'images/' + nameToFilename(c.name);
       });
     }
