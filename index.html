@@ -3857,8 +3857,13 @@
 
   function syncLoad() {
     try {
-      syncToken  = localStorage.getItem(SYNC_TOKEN_KEY)  || '';
-      syncGistId = localStorage.getItem(SYNC_GIST_KEY)   || '';
+      syncToken  = localStorage.getItem(SYNC_TOKEN_KEY)  || localStorage.getItem('whosdat-sync-token') || '';
+      syncGistId = localStorage.getItem(SYNC_GIST_KEY)   || localStorage.getItem('whosdat-sync-gist')  || '';
+      // If found old keys, migrate them
+      if (!localStorage.getItem(SYNC_TOKEN_KEY) && localStorage.getItem('whosdat-sync-token')) {
+        localStorage.setItem(SYNC_TOKEN_KEY, localStorage.getItem('whosdat-sync-token'));
+        localStorage.setItem(SYNC_GIST_KEY, localStorage.getItem('whosdat-sync-gist'));
+      }
     } catch(e) {}
   }
 
@@ -3924,19 +3929,25 @@
     let chars = [];
     let opeds = [];
     
-    // Scan EVERY file in the Gist
+    // 1. Try exact filenames first for priority
+    if (data.files['characters.json']) {
+      try { chars = JSON.parse(data.files['characters.json'].content); } catch(e){}
+    }
+    if (data.files['opeds.json']) {
+      try { opeds = JSON.parse(data.files['opeds.json'].content); } catch(e){}
+    }
+
+    // 2. Scan EVERY file in the Gist if still missing data
     for (const filename in data.files) {
       const file = data.files[filename];
       try {
         const parsed = JSON.parse(file.content);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Is it characters?
-          if (parsed[0].name && parsed[0].image) {
+          if (chars.length === 0 && (parsed[0].name || parsed[0].image)) {
             chars = parsed;
             updateDebug("Found " + chars.length + " characters in " + filename);
           }
-          // Is it OPEDs?
-          else if (parsed[0].youtubeId) {
+          else if (opeds.length === 0 && (parsed[0].youtubeId || parsed[0].title)) {
             opeds = parsed;
             updateDebug("Found " + opeds.length + " OP/EDs in " + filename);
           }
@@ -4024,6 +4035,10 @@
 
       if (cAdded || chars.length > 0) { 
         updateDebug("Refreshing game state...");
+        
+        // Ensure global CHARACTERS is updated if we pulled from Gist
+        if (chars.length > 0) window.CHARACTERS = chars;
+        
         buildSeriesFilter(); 
         updateModCharCount(); 
         renderEditList(); 
