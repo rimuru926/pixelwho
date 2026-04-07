@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f0e17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>WhosDat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1474,11 +1477,17 @@
         <div class="oped-bar"></div><div class="oped-bar"></div>
         <div class="oped-bar"></div><div class="oped-bar"></div>
       </div>
-      <div class="oped-progress-wrap">
-        <div class="oped-progress-bar" id="oped-progress-bar"></div>
-      </div>
+    <div class="oped-progress-wrap">
+      <div class="oped-progress-bar" id="oped-progress-bar"></div>
+    </div>
+    
+    <div style="width:100%; display:flex; align-items:center; gap:10px; margin-top:5px;">
+      <span style="font-size:0.75rem; color:var(--muted);">🔈</span>
+      <input type="range" id="oped-volume" min="0" max="100" value="100" style="flex:1; accent-color:var(--accent); height:4px; cursor:pointer;">
+      <span style="font-size:0.75rem; color:var(--muted);">🔊</span>
+    </div>
       <div class="oped-status-text" id="oped-status-text">Press Play to start</div>
-      <div id="oped-yt-player" style="position:absolute;width:1px;height:1px;opacity:0.01;pointer-events:none;bottom:0;left:0;"></div>
+      <div id="oped-yt-player" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;visibility:hidden;"></div>
     </div>
 
     <button id="oped-replay-btn">▶ Play Clip</button>
@@ -2147,17 +2156,28 @@
   }
 
   function applyImageLoad() {
-    charImg.onload=()=>{
-      loadCover.style.display='none'; charImg.style.opacity='1';
-      if(blurMode) { charImg.style.filter='blur('+BLUR_START+'px)'; charImg.style.clipPath=''; }
-      else if(cropMode) {
-        charImg.classList.add('crop-mode');
-        charImg.style.filter='';
-        charImg.style.clipPath='inset('+CROP_INSETS[0]+'% round 6px)';
-      } else { charImg.style.filter=''; charImg.style.clipPath=''; }
+    // Show loader immediately
+    loadCover.style.display='flex';
+    charImg.style.opacity='0';
+
+    const img = new Image();
+    img.onload = () => {
+        charImg.src = img.src;
+        loadCover.style.display='none'; 
+        charImg.style.opacity='1';
+        if(blurMode) { charImg.style.filter='blur('+BLUR_START+'px)'; charImg.style.clipPath=''; }
+        else if(cropMode) {
+          charImg.classList.add('crop-mode');
+          charImg.style.filter='';
+          charImg.style.clipPath='inset('+CROP_INSETS[0]+'% round 6px)';
+        } else { charImg.style.filter=''; charImg.style.clipPath=''; }
     };
-    charImg.onerror=()=>{ loadCover.style.display='none'; charImg.style.opacity='1'; charImg.src='https://placehold.co/400x500/1a1929/ff8906?text='+encodeURIComponent(currentChar.name)+'&font=bebas-neue'; };
-    charImg.src=currentChar.image;
+    img.onerror = () => {
+        loadCover.style.display='none'; 
+        charImg.style.opacity='1'; 
+        charImg.src='https://placehold.co/400x500/1a1929/ff8906?text='+encodeURIComponent(currentChar.name)+'&font=bebas-neue'; 
+    };
+    img.src = currentChar.image;
   }
 
   function loadDailyMode() {
@@ -3088,6 +3108,12 @@
     if (q3)     char.quote3 = q3;
 
     if (!window.CHARACTERS) window.CHARACTERS = [];
+    const normName = name.toLowerCase().trim();
+    const existing = window.CHARACTERS.find(c => c.name.toLowerCase().trim() === normName);
+    if (existing) {
+        if (!confirm(`A character named "${existing.name}" already exists. Add anyway?`)) return;
+    }
+    
     if (!window.CHARACTERS.find(c => c.name === name)) {
       window.CHARACTERS.push(char);
       buildSeriesFilter();
@@ -3576,6 +3602,9 @@
     if (el) el.textContent = `${c} char(s) · ${o} OP/EDs in session`;
   }
 
+  let lastGistEtag = '';
+  let lastGistUpdate = '';
+
   async function gistFetch() {
     const r = await fetch('https://api.github.com/gists/' + syncGistId, {
       headers: {
@@ -3584,7 +3613,10 @@
       }
     });
     if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 401 ? ' — check your token' : r.status === 404 ? ' — Gist not found' : ''));
+    
+    lastGistEtag = r.headers.get('ETag');
     const data = await r.json();
+    lastGistUpdate = data.updated_at;
     
     let chars = [];
     if (data.files['characters.json']) {
@@ -3601,7 +3633,22 @@
     return { chars, opeds };
   }
 
-  async function gistPush(chars, opeds) {
+  async function gistPush(chars, opeds, force = false) {
+    // Conflict check
+    if (!force && lastGistUpdate) {
+        const check = await fetch('https://api.github.com/gists/' + syncGistId, {
+            headers: { 'Authorization': 'Bearer ' + syncToken }
+        });
+        if (check.ok) {
+            const current = await check.json();
+            if (current.updated_at !== lastGistUpdate) {
+                if (!confirm('Conflict detected: The Gist was updated by another device. Overwrite anyway?')) {
+                    throw new Error('Sync cancelled due to conflict.');
+                }
+            }
+        }
+    }
+
     const body = { files: {} };
     body.files[SYNC_FILENAME] = { content: JSON.stringify(chars, null, 2) };
     body.files['opeds.json']  = { content: JSON.stringify(opeds, null, 2) };
@@ -3615,6 +3662,8 @@
       body: JSON.stringify(body)
     });
     if (!r.ok) throw new Error('Push failed: HTTP ' + r.status);
+    const result = await r.json();
+    lastGistUpdate = result.updated_at;
   }
 
   async function syncAutoSync() {
@@ -3800,6 +3849,7 @@
   let opedGuessesLeft = 5, opedState = 'idle';
   let opedClipTimer = null, opedProgressTimer = null;
   let opedAcIndex = -1;
+  let opedVolume = parseInt(localStorage.getItem('whosdat-oped-volume')) || 100;
 
   let ytPlayer = null, ytReady = false, ytPendingPlay = null;
 
@@ -3811,6 +3861,16 @@
       events: {
         onReady: () => {
           ytReady = true;
+          ytPlayer.setVolume(opedVolume);
+          const volSlider = document.getElementById('oped-volume');
+          if (volSlider) {
+              volSlider.value = opedVolume;
+              volSlider.addEventListener('input', (e) => {
+                  opedVolume = parseInt(e.target.value);
+                  ytPlayer.setVolume(opedVolume);
+                  localStorage.setItem('whosdat-oped-volume', opedVolume);
+              });
+          }
           if (ytPendingPlay) { ytPendingPlay(); ytPendingPlay = null; }
         },
         onError: (e) => {
@@ -4123,7 +4183,9 @@
 
     const title = titleEl.value.trim();
     const type  = typeEl.value;
-    const ytId  = ytIdEl.value.trim();
+    const _raw  = ytIdEl.value.trim();
+    const _ytMatch = _raw.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|watch\?v=)([A-Za-z0-9_-]{11})/);
+    const ytId  = _ytMatch ? _ytMatch[1] : _raw;
 
     if (!title) { errEl.textContent = 'Title is required.'; return; }
     if (!ytId)  { errEl.textContent = 'YouTube ID is required.'; return; }
