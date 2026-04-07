@@ -3913,12 +3913,29 @@
     lastGistUpdate = data.updated_at;
     
     let chars = [];
-    if (data.files['characters.json']) {
-      try { chars = JSON.parse(data.files['characters.json'].content); } catch(e) {}
-    } else if (data.files[SYNC_FILENAME]) {
-      try { chars = JSON.parse(data.files[SYNC_FILENAME].content); } catch(e) {}
-    } else if (data.files['character.js']) { // Fallback for old filename
-      try { chars = JSON.parse(data.files['character.js'].content); } catch(e) {}
+    // 1. Try common filenames first
+    const charFiles = ['characters.json', SYNC_FILENAME, 'character.js', 'pixelwho_characters.json'];
+    for (const f of charFiles) {
+      if (data.files[f] && data.files[f].content) {
+        try { 
+          const parsed = JSON.parse(data.files[f].content);
+          if (Array.isArray(parsed)) { chars = parsed; break; }
+        } catch(e) {}
+      }
+    }
+    
+    // 2. Scan EVERY file in the Gist for character data if still empty
+    if (chars.length === 0) {
+      for (const f in data.files) {
+        try {
+          const content = data.files[f].content;
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0].name || parsed[0].image)) {
+            chars = parsed;
+            break;
+          }
+        } catch(e) {}
+      }
     }
     
     let opeds = [];
@@ -4009,10 +4026,10 @@
         updateModCharCount(); 
         renderEditList(); 
         renderNoQuote(); 
-        // Refresh the game pool so the new characters show up immediately
+        
+        // Restore game UI elements if they were replaced by the "No characters" message
         const card = document.getElementById('char-card');
         if (card && card.innerHTML.includes('No characters found')) {
-            // Restore original HTML structure if it was replaced by error message
             card.innerHTML = `
               <img id="char-img" src="" alt="Guess this character">
               <div class="loading-cover" id="loading-cover"><div class="spinner"></div></div>
@@ -4022,13 +4039,11 @@
               </div>
               <button id="fs-expand-btn" onclick="openLightbox()" title="View Fullscreen">⤢</button>
             `;
-            // Re-bind elements that were inside char-card
-            const charImg = document.getElementById('char-img');
-            const loadCover = document.getElementById('loading-cover');
-            // Update global references
-            window.charImg = charImg;
-            window.loadCover = loadCover;
+            // Re-assign variables to the new DOM elements
+            charImg = document.getElementById('char-img');
+            loadCover = document.getElementById('loading-cover');
         }
+        
         resetPool(); 
         loadNext();
       }
