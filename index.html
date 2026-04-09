@@ -3124,7 +3124,7 @@
         characterName: charName,
         series: series || 'Unknown',
         quote: quote || '',
-        timestamp: new Date(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         userNickname: loadNickname()
       });
       alert('🎉 Suggestion submitted! Thank you for helping improve PixelWho!');
@@ -4694,30 +4694,27 @@
     const loadCoverEl = document.getElementById('loading-cover');
     if (loadCoverEl) loadCoverEl.style.display = 'flex';
 
-    fetch('https://api.github.com/gists/' + PUBLIC_GIST_ID, {
-      headers: { 'Accept': 'application/vnd.github+json' }
-    })
+    fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/characters.json')
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     })
-    .then(data => {
+    .then(gistChars => {
       // — Characters —
-      let gistChars = [];
-      const charsFile = data.files['characters.json'] || data.files['characters.js'];
-      if (charsFile && charsFile.content) {
-        try { gistChars = JSON.parse(charsFile.content); } catch(e) {}
+      if (Array.isArray(gistChars)) {
+        gistChars.forEach(c => {
+          if (c && c.name && c.image && !window.CHARACTERS.find(x => x.name === c.name)) {
+            window.CHARACTERS.push(c);
+          }
+        });
       }
-      gistChars.forEach(c => {
-        if (c && c.name && c.image && !window.CHARACTERS.find(x => x.name === c.name)) {
-          window.CHARACTERS.push(c);
-        }
-      });
 
       // — OP/EDs —
-      if (data.files['opeds.json'] && data.files['opeds.json'].content) {
-        let gistOpeds = [];
-        try { gistOpeds = JSON.parse(data.files['opeds.json'].content); } catch(e) {}
+      return fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/opeds.json');
+    })
+    .then(r => r.ok ? r.json() : [])
+    .then(gistOpeds => {
+      if (Array.isArray(gistOpeds)) {
         gistOpeds.forEach(o => {
           if (o && o.youtubeId && !window.OPEDS.find(x => x.youtubeId === o.youtubeId)) {
             window.OPEDS.push(o);
