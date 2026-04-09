@@ -1992,7 +1992,7 @@
   //  PUBLIC GIST — data source for all visitors
   //  Fetched anonymously on every page load.
   // ═══════════════════════════════════════════════════
-  const PUBLIC_GIST_ID = 'f42bec521cad396eb4d3d10ac596fc92';
+  const PUBLIC_GIST_ID = '640a8cd08e02caf5732c0f98c6cb7af1';
 
   // ═══════════════════════════════════════════════════
   //  CHARACTERS — populated from Gist on load
@@ -2075,7 +2075,7 @@
       activeLabel.textContent = SECTION_NAMES[t] || t;
       if (t === 'tierlist') { renderTierList(); renderTLSlots(); }
       if (t === 'quiz') { if (!quizReady) { quizReady = true; initQuiz(); } }
-      if (t === 'stats') renderStats();
+      if (t === 'stats') { renderStats(); initSuggestionButton(); }
       if (t === 'mod') initModPanel();
       if (t === 'oped') { if (!opedReady) { opedReady = true; initOpedGame(); } }
       closeDrawer();
@@ -2902,6 +2902,7 @@
         firebase.initializeApp(firebaseConfig);
       }
       db = firebase.firestore();
+      window.db = db;
       console.log("Firebase initialized successfully.");
     } catch(e) {
       console.error("Firebase initialization failed:", e);
@@ -3120,13 +3121,21 @@
     btn.disabled = true;
     btn.textContent = '⏳ Submitting...';
     try {
-      await db.collection('suggestions').add({
+      const suggestionData = {
         characterName: charName,
         series: series || 'Unknown',
         quote: quote || '',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         userNickname: loadNickname()
-      });
+      };
+      
+      // Try to use serverTimestamp if available, fallback to Date
+      try {
+        suggestionData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+      } catch(tsErr) {
+        suggestionData.timestamp = new Date();
+      }
+
+      await db.collection('suggestions').add(suggestionData);
       alert('🎉 Suggestion submitted! Thank you for helping improve PixelWho!');
       document.getElementById('suggest-char-name').value = '';
       document.getElementById('suggest-char-series').value = '';
@@ -3171,16 +3180,17 @@
   }
 
   // Attach suggestion submission to button if it exists
+  function initSuggestionButton() {
     const suggestBtn = document.getElementById('suggest-submit-btn');
-  if (suggestBtn) {
-    // Remove any existing listeners by cloning (to be safe)
-    const newBtn = suggestBtn.cloneNode(true);
-    suggestBtn.parentNode.replaceChild(newBtn, suggestBtn);
-    newBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      submitSuggestion();
-    });
+    if (suggestBtn) {
+      // Use a named function to avoid duplicate listeners if called multiple times
+      suggestBtn.onclick = (e) => {
+        e.preventDefault();
+        submitSuggestion();
+      };
+    }
   }
+  initSuggestionButton();
 
   // ═══════════════════════════════════════════════════
   //  TIER LIST EXPORT
@@ -3950,12 +3960,19 @@
   }
 
   function setSyncConnectedUI(connected) {
-    document.getElementById('sync-setup-box').style.display      = connected ? 'none'  : 'flex';
-    document.getElementById('sync-connected-box').style.display  = connected ? 'flex'  : 'none';
+    const setupBox = document.getElementById('sync-setup-box');
+    const connectedBox = document.getElementById('sync-connected-box');
+    if (setupBox) setupBox.style.display = connected ? 'none' : 'flex';
+    if (connectedBox) {
+      connectedBox.style.display = connected ? 'flex' : 'none';
+      connectedBox.style.flexDirection = 'column'; // Ensure layout is correct
+    }
+    
     if (connected) {
       const sub = document.getElementById('sync-conn-sub');
-      sub.textContent = 'Gist: ' + syncGistId.slice(0, 16) + '…';
-      document.getElementById('sync-gist-link').href = 'https://gist.github.com/' + syncGistId;
+      if (sub) sub.textContent = 'Gist: ' + (syncGistId ? syncGistId.slice(0, 16) + '…' : 'Connected');
+      const gistLink = document.getElementById('sync-gist-link');
+      if (gistLink && syncGistId) gistLink.href = 'https://gist.github.com/' + syncGistId;
       updateSyncCharCount();
     }
   }
@@ -4057,7 +4074,10 @@
     document.getElementById('sync-connect-btn').disabled = true;
 
     try {
-      const { chars, opeds } = await gistFetch();
+      const data = await gistFetch();
+      const chars = data.chars || [];
+      const opeds = data.opeds || [];
+      
       let cAdded = 0;
       chars.forEach(c => {
         if (c && c.name && c.image && !(window.CHARACTERS||[]).find(x => x.name === c.name)) {
@@ -4080,6 +4100,7 @@
       setSyncConnectedUI(true);
       showSyncStatus(`✅ Connected! Loaded ${chars.length} chars, ${opeds.length} OP/EDs.`, 'ok');
     } catch(e) {
+      console.error('Sync error:', e);
       errEl.textContent = '❌ ' + e.message;
       syncToken = ''; syncGistId = '';
     }
@@ -4704,13 +4725,23 @@
     // Use a timestamp to bypass any caching issues
     const ts = new Date().getTime();
     
+    // Try to load from localStorage first
+    syncLoad();
+    const effectiveGistId = PUBLIC_GIST_ID || syncGistId;
+    if (!effectiveGistId) {
+      if (loadCoverEl) loadCoverEl.style.display = 'none';
+      buildSeriesFilter();
+      initGame();
+      return;
+    }
+
     // Fetch characters.json
-    const p1 = fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/characters.json?t=' + ts)
+    const p1 = fetch('https://gist.githubusercontent.com/rimuru926/' + effectiveGistId + '/raw/characters.json?t=' + ts)
       .then(r => r.ok ? r.json() : [])
       .catch(() => []);
 
     // Fetch opeds.json
-    const p2 = fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/opeds.json?t=' + ts)
+    const p2 = fetch('https://gist.githubusercontent.com/rimuru926/' + effectiveGistId + '/raw/opeds.json?t=' + ts)
       .then(r => r.ok ? r.json() : [])
       .catch(() => []);
 
@@ -4720,6 +4751,8 @@
       if (Array.isArray(gistChars)) {
         gistChars.forEach(c => {
           if (c && c.name && c.image) {
+            // Ensure window.CHARACTERS is initialized
+            if (!window.CHARACTERS) window.CHARACTERS = [];
             // Check if already exists in window.CHARACTERS
             if (!window.CHARACTERS.some(x => x.name === c.name)) {
               window.CHARACTERS.push(c);
@@ -4732,6 +4765,7 @@
       if (Array.isArray(gistOpeds)) {
         gistOpeds.forEach(o => {
           if (o && o.youtubeId) {
+            if (!window.OPEDS) window.OPEDS = [];
             if (!window.OPEDS.some(x => x.youtubeId === o.youtubeId)) {
               window.OPEDS.push(o);
             }
@@ -4743,6 +4777,7 @@
       // Network error or Gist unreachable — continue with whatever is in localStorage
     })
     .finally(() => {
+      if (loadCoverEl) loadCoverEl.style.display = 'none';
       // Always boot the game after the fetch attempt (success or failure)
       buildSeriesFilter();
       initGame();
