@@ -2232,7 +2232,7 @@
 
   function initGame() {
     if (!window.CHARACTERS||!CHARACTERS.length) {
-      document.getElementById('char-card').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:24px;font-size:0.9rem;">No characters found.<br><br>Check characters.js</div>';
+      document.getElementById('char-card').innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:24px;font-size:0.9rem;">No characters found.<br><br>Loading from Gist...</div>';
       return;
     }
     resetPool(); loadNext();
@@ -2734,7 +2734,7 @@
   function initQuiz() {
     quizPool = [...quizEntries()].sort(() => Math.random() - 0.5);
     if (!quizPool.length) {
-      document.getElementById('quiz-quote').textContent = 'No characters with quotes yet. Add some in characters.js!';
+      document.getElementById('quiz-quote').textContent = 'No characters with quotes yet. Please add some or wait for the Gist to load!';
       document.getElementById('quiz-options').style.display = 'none';
       document.getElementById('quiz-input-wrap').style.display = 'none';
       return;
@@ -3171,8 +3171,15 @@
   }
 
   // Attach suggestion submission to button if it exists
-  if (document.getElementById('suggest-submit-btn')) {
-    document.getElementById('suggest-submit-btn').addEventListener('click', submitSuggestion);
+    const suggestBtn = document.getElementById('suggest-submit-btn');
+  if (suggestBtn) {
+    // Remove any existing listeners by cloning (to be safe)
+    const newBtn = suggestBtn.cloneNode(true);
+    suggestBtn.parentNode.replaceChild(newBtn, suggestBtn);
+    newBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      submitSuggestion();
+    });
   }
 
   // ═══════════════════════════════════════════════════
@@ -4694,30 +4701,40 @@
     const loadCoverEl = document.getElementById('loading-cover');
     if (loadCoverEl) loadCoverEl.style.display = 'flex';
 
-    fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/characters.json')
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(gistChars => {
+    // Use a timestamp to bypass any caching issues
+    const ts = new Date().getTime();
+    
+    // Fetch characters.json
+    const p1 = fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/characters.json?t=' + ts)
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => []);
+
+    // Fetch opeds.json
+    const p2 = fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/opeds.json?t=' + ts)
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => []);
+
+    Promise.all([p1, p2])
+    .then(([gistChars, gistOpeds]) => {
       // — Characters —
       if (Array.isArray(gistChars)) {
         gistChars.forEach(c => {
-          if (c && c.name && c.image && !window.CHARACTERS.find(x => x.name === c.name)) {
-            window.CHARACTERS.push(c);
+          if (c && c.name && c.image) {
+            // Check if already exists in window.CHARACTERS
+            if (!window.CHARACTERS.some(x => x.name === c.name)) {
+              window.CHARACTERS.push(c);
+            }
           }
         });
       }
 
       // — OP/EDs —
-      return fetch('https://gist.githubusercontent.com/rimuru926/' + PUBLIC_GIST_ID + '/raw/opeds.json');
-    })
-    .then(r => r.ok ? r.json() : [])
-    .then(gistOpeds => {
       if (Array.isArray(gistOpeds)) {
         gistOpeds.forEach(o => {
-          if (o && o.youtubeId && !window.OPEDS.find(x => x.youtubeId === o.youtubeId)) {
-            window.OPEDS.push(o);
+          if (o && o.youtubeId) {
+            if (!window.OPEDS.some(x => x.youtubeId === o.youtubeId)) {
+              window.OPEDS.push(o);
+            }
           }
         });
       }
