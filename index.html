@@ -2051,6 +2051,7 @@
     </div>
       <div class="oped-status-text" id="oped-status-text">Press Play to start</div>
       <div id="oped-yt-player" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;visibility:hidden;"></div>
+      <video id="oped-at-player" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;visibility:hidden;" preload="auto" playsinline></video>
     </div>
 
     <button id="oped-replay-btn">▶ Play Clip</button>
@@ -2082,7 +2083,7 @@
     <div class="oped-empty-state" id="oped-empty" style="display:none">
       <div class="oped-empty-icon">🎵</div>
       <div class="oped-empty-title">No OP/EDs yet</div>
-      <div class="oped-empty-sub">Go to <strong>Mod Panel → OP/ED</strong> to add YouTube links for anime openings and endings.</div>
+      <div class="oped-empty-sub">Go to <strong>Mod Panel → OP/ED</strong> to add YouTube or AnimeThemes links for anime openings and endings.</div>
     </div>
 
   </div>
@@ -2502,15 +2503,16 @@
         </div>
 
         <div class="mod-field">
-          <div class="mod-label">YouTube Video ID <span class="req">REQUIRED</span></div>
+          <div class="mod-label">Video Link <span class="req">REQUIRED</span></div>
           <div style="display:flex;gap:8px;align-items:stretch">
             <input class="mod-input" id="oped-mod-ytid" type="text"
-              placeholder="e.g. dAbIsShxB_g (from youtu.be/dAbIsShxB_g)"
+              placeholder="YouTube URL/ID  or  AnimeThemes URL (.webm)"
               autocorrect="off" autocomplete="off" spellcheck="false" style="font-family:monospace;font-size:0.85rem;flex:1">
             <button type="button" id="oped-test-link-btn" style="padding:0 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--muted);font-family:Outfit,sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:color 0.15s,border-color 0.15s">Test Link</button>
           </div>
           <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">
-            The ID after <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--accent);font-size:0.72rem">youtu.be/</code> or <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--accent);font-size:0.72rem">?v=</code> in the YouTube URL
+            YouTube: paste a <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--accent);font-size:0.72rem">youtu.be/</code> or <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--accent);font-size:0.72rem">?v=</code> URL (or just the 11-char ID).<br>
+            AnimeThemes: paste the full <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--accent);font-size:0.72rem">https://v.animethemes.moe/Anime-OP1.webm</code> URL.
           </div>
           <div id="oped-link-status" style="font-size:0.75rem;margin-top:6px;min-height:1.2em"></div>
         </div>
@@ -5823,6 +5825,8 @@
               volSlider.addEventListener('input', (e) => {
                   opedVolume = parseInt(e.target.value);
                   ytPlayer.setVolume(opedVolume);
+                  const atPlayer = document.getElementById('oped-at-player');
+                  if (atPlayer) atPlayer.volume = opedVolume / 100;
                   localStorage.setItem('whosdat-oped-volume', opedVolume);
               });
           }
@@ -5845,6 +5849,28 @@
     });
   };
 
+  // AnimeThemes video player event listeners
+  const atPlayer = document.getElementById('oped-at-player');
+  if (atPlayer) {
+    atPlayer.addEventListener('play', () => {
+      startOpedVisuals();
+    });
+    atPlayer.addEventListener('ended', () => {
+      stopOpedBars();
+      document.getElementById('oped-status-text').textContent = 'Clip ended — make a guess!';
+      document.getElementById('oped-status-text').classList.remove('playing');
+      document.getElementById('oped-replay-btn').disabled = (opedState === 'done');
+      document.getElementById('oped-replay-btn').textContent = '↺ Replay Clip';
+    });
+    atPlayer.addEventListener('error', () => {
+      document.getElementById('oped-status-text').textContent = 'Video unavailable — try another';
+      document.getElementById('oped-status-text').classList.remove('playing');
+      stopOpedBars();
+      document.getElementById('oped-replay-btn').disabled = false;
+      document.getElementById('oped-replay-btn').textContent = '↺ Replay Clip';
+    });
+  }
+
   // Toggle duration
   document.querySelectorAll('.odur-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -5861,6 +5887,8 @@
           document.getElementById('oped-progress-bar').style.transition = 'none';
           document.getElementById('oped-progress-bar').style.width = '0%';
           try { ytPlayer.stopVideo(); } catch(e){}
+          const atPlayer = document.getElementById('oped-at-player');
+          if (atPlayer) atPlayer.pause();
       }
     });
   });
@@ -5886,6 +5914,8 @@
     const clipDuration = getOpedClipDuration();
     opedClipTimer = setTimeout(() => {
       try { ytPlayer.stopVideo(); } catch(e) {}
+      const atPlayer = document.getElementById('oped-at-player');
+      if (atPlayer) atPlayer.pause();
       stopOpedBars();
       statusEl.textContent = 'Clip ended — make a guess!';
       statusEl.classList.remove('playing');
@@ -5920,25 +5950,48 @@
         document.getElementById('oped-replay-btn').disabled = true;
         document.getElementById('oped-replay-btn').textContent = '⏳ Buffering…';
 
-        let safeDur = ytPlayer.getDuration();
-        if (!safeDur || safeDur < 10) safeDur = 90; 
+        const isAnimeThemes = opedCurrent.videoSource === 'animethemes';
         
-        if (!opedStartLocked) {
-          const maxStart = Math.max(5, safeDur - opedDuration - 10);
-          opedStart = Math.floor(Math.random() * maxStart) + 5;
-          opedStartLocked = true;
-        }
+        if (isAnimeThemes) {
+          // Play AnimeThemes video
+          const atPlayer = document.getElementById('oped-at-player');
+          atPlayer.src = opedCurrent.videoUrl || ('https://v.animethemes.moe/' + opedCurrent.youtubeId);
+          atPlayer.volume = opedVolume / 100;
+          atPlayer.currentTime = 0;
+          atPlayer.play().catch(e => {
+            statusEl.textContent = 'Video unavailable — try another';
+            statusEl.classList.remove('playing');
+            stopOpedBars();
+            document.getElementById('oped-replay-btn').disabled = false;
+            document.getElementById('oped-replay-btn').textContent = '↺ Replay Clip';
+          });
+        } else {
+          // Play YouTube video
+          let safeDur = ytPlayer.getDuration();
+          if (!safeDur || safeDur < 10) safeDur = 90; 
+          
+          if (!opedStartLocked) {
+            const maxStart = Math.max(5, safeDur - opedDuration - 10);
+            opedStart = Math.floor(Math.random() * maxStart) + 5;
+            opedStartLocked = true;
+          }
 
-        ytPlayer.loadVideoById({
-          videoId: opedCurrent.youtubeId,
-          startSeconds: opedStart,
-          endSeconds: opedStart + opedDuration + 1 // Add 1s extra to the load range to prevent premature cut-off
-        });
+          ytPlayer.loadVideoById({
+            videoId: opedCurrent.youtubeId,
+            startSeconds: opedStart,
+            endSeconds: opedStart + opedDuration + 1 // Add 1s extra to the load range to prevent premature cut-off
+          });
+        }
       } catch(e) {}
     };
 
-    if (ytReady) doPlay();
-    else ytPendingPlay = doPlay;
+    if (isAnimeThemes) {
+      doPlay();
+    } else if (ytReady) {
+      doPlay();
+    } else {
+      ytPendingPlay = doPlay;
+    }
   }
 
   function stopOpedBars() {
@@ -6020,6 +6073,8 @@
       document.getElementById('oped-ac').classList.remove('open');
       clearTimeout(opedClipTimer);
       try { ytPlayer && ytPlayer.stopVideo(); } catch(e){}
+      const atPlayer = document.getElementById('oped-at-player');
+      if (atPlayer) atPlayer.pause();
       stopOpedBars();
       
       const rev = document.getElementById('oped-answer-reveal');
@@ -6142,6 +6197,8 @@
     document.getElementById('oped-input').disabled = true;
     clearTimeout(opedClipTimer);
     try { ytPlayer && ytPlayer.stopVideo(); } catch(e){}
+    const atPlayer = document.getElementById('oped-at-player');
+    if (atPlayer) atPlayer.pause();
     stopOpedBars();
     const rev = document.getElementById('oped-answer-reveal');
     let revealText = 'Skipped — it was <strong>' + opedCurrent.title + '</strong> (' + (opedCurrent.type||'OP') + ')';
@@ -6203,6 +6260,37 @@
     list.appendChild(empty);
   }
 
+  // Helper: Parse video link (YouTube or AnimeThemes) into a normalized identifier
+  function parseVideoLink(raw) {
+    const trimmed = raw.trim();
+    
+    // Check for AnimeThemes URL
+    if (trimmed.includes('animethemes.moe') || trimmed.includes('v.animethemes')) {
+      // Extract the full URL or just the filename
+      const match = trimmed.match(/https?:\/\/v\.animethemes\.moe\/(.+\.webm)/i);
+      if (match) {
+        return { type: 'animethemes', id: match[1], fullUrl: match[0] };
+      }
+      // If it's just a filename like "Bakemonogatari-OP1.webm"
+      if (trimmed.endsWith('.webm')) {
+        return { type: 'animethemes', id: trimmed, fullUrl: 'https://v.animethemes.moe/' + trimmed };
+      }
+    }
+    
+    // Check for YouTube URL or ID
+    const ytMatch = trimmed.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|watch\?v=)([A-Za-z0-9_-]{11})/);
+    if (ytMatch) {
+      return { type: 'youtube', id: ytMatch[1] };
+    }
+    
+    // If it's exactly 11 characters and looks like a YouTube ID
+    if (trimmed.length === 11 && /^[A-Za-z0-9_-]+$/.test(trimmed)) {
+      return { type: 'youtube', id: trimmed };
+    }
+    
+    return null;
+  }
+
   document.getElementById('oped-mod-add-btn').addEventListener('click', () => {
     const titleEl    = document.getElementById('oped-mod-title');
     const typeEl     = document.getElementById('oped-mod-type');
@@ -6217,19 +6305,21 @@
     const song  = songEl.value.trim();
     const endtime = endtimeEl.value ? parseFloat(endtimeEl.value) : null;
     const _raw  = ytIdEl.value.trim();
-    const _ytMatch = _raw.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|watch\?v=)([A-Za-z0-9_-]{11})/);
-    const ytId  = _ytMatch ? _ytMatch[1] : _raw;
+    
+    // Parse the video link (supports both YouTube and AnimeThemes)
+    const parsed = parseVideoLink(_raw);
+    if (!parsed) { errEl.textContent = 'Invalid video link. Paste a YouTube URL/ID or AnimeThemes URL.'; return; }
 
     if (!title) { errEl.textContent = 'Title is required.'; return; }
-    if (!ytId)  { errEl.textContent = 'YouTube ID is required.'; return; }
     
     const isEditing = editingOpedIdx !== null;
-    if (!isEditing && OPEDS.find(e => e.youtubeId === ytId)) { errEl.textContent = 'This YouTube ID is already in the library.'; return; }
+    if (!isEditing && OPEDS.find(e => e.youtubeId === parsed.id)) { errEl.textContent = 'This video is already in the library.'; return; }
 
     if (isEditing) {
-      OPEDS[editingOpedIdx] = { title, type, youtubeId: ytId };
+      OPEDS[editingOpedIdx] = { title, type, youtubeId: parsed.id, videoSource: parsed.type };
       if (song) OPEDS[editingOpedIdx].song = song;
       if (endtime !== null) OPEDS[editingOpedIdx].endTime = endtime;
+      if (parsed.type === 'animethemes' && parsed.fullUrl) OPEDS[editingOpedIdx].videoUrl = parsed.fullUrl;
       saveOpeds();
       renderOpedEntryList();
       renderSeriesLibrary();
@@ -6244,9 +6334,10 @@
       document.getElementById('oped-mod-add-btn').dataset.editing = 'false';
       editingOpedIdx = null;
     } else {
-      const entry = { title, type, youtubeId: ytId };
+      const entry = { title, type, youtubeId: parsed.id, videoSource: parsed.type };
       if (song) entry.song = song;
       if (endtime !== null) entry.endTime = endtime;
+      if (parsed.type === 'animethemes' && parsed.fullUrl) entry.videoUrl = parsed.fullUrl;
       OPEDS.push(entry);
       saveOpeds();
       renderOpedEntryList();
@@ -6266,11 +6357,10 @@
     const ytIdEl = document.getElementById('oped-mod-ytid');
     const statusEl = document.getElementById('oped-link-status');
     const _raw = ytIdEl.value.trim();
-    const _ytMatch = _raw.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|watch\?v=)([A-Za-z0-9_-]{11})/);
-    const ytId = _ytMatch ? _ytMatch[1] : _raw;
     
-    if (!ytId || ytId.length !== 11) {
-      statusEl.textContent = '❌ Invalid YouTube ID format';
+    const parsed = parseVideoLink(_raw);
+    if (!parsed) {
+      statusEl.textContent = '❌ Invalid link format';
       statusEl.style.color = 'var(--wrong)';
       return;
     }
@@ -6278,20 +6368,39 @@
     statusEl.textContent = '⏳ Testing...';
     statusEl.style.color = 'var(--muted)';
     
-    fetch('https://www.youtube.com/oembed?url=https://youtu.be/' + ytId + '&format=json')
-      .then(r => {
-        if (r.ok) {
-          statusEl.textContent = '✅ Link is valid!';
-          statusEl.style.color = 'var(--correct)';
-        } else {
-          statusEl.textContent = '❌ Video not found or unavailable';
+    if (parsed.type === 'animethemes') {
+      // Test AnimeThemes link with HEAD request
+      fetch(parsed.fullUrl, { method: 'HEAD' })
+        .then(r => {
+          if (r.ok) {
+            statusEl.textContent = '✅ AnimeThemes link is valid!';
+            statusEl.style.color = 'var(--correct)';
+          } else {
+            statusEl.textContent = '❌ AnimeThemes video not found';
+            statusEl.style.color = 'var(--wrong)';
+          }
+        })
+        .catch(() => {
+          statusEl.textContent = '❌ Could not verify AnimeThemes link';
           statusEl.style.color = 'var(--wrong)';
-        }
-      })
-      .catch(() => {
-        statusEl.textContent = '❌ Could not verify link';
-        statusEl.style.color = 'var(--wrong)';
-      });
+        });
+    } else {
+      // Test YouTube link
+      fetch('https://www.youtube.com/oembed?url=https://youtu.be/' + parsed.id + '&format=json')
+        .then(r => {
+          if (r.ok) {
+            statusEl.textContent = '✅ YouTube link is valid!';
+            statusEl.style.color = 'var(--correct)';
+          } else {
+            statusEl.textContent = '❌ YouTube video not found or unavailable';
+            statusEl.style.color = 'var(--wrong)';
+          }
+        })
+        .catch(() => {
+          statusEl.textContent = '❌ Could not verify YouTube link';
+          statusEl.style.color = 'var(--wrong)';
+        });
+    }
   });
 
   document.querySelectorAll('.mod-tab-btn').forEach(btn => {
