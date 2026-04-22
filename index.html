@@ -4705,7 +4705,9 @@
   const urlItemPaths = {}; 
   function isUrl(s) { return /^https?:\/\//i.test(s); }
   function isBase64(s) { return /^data:image\//i.test(s); }
-  function needsConvert(s) { return isUrl(s) || isBase64(s); }
+  function isImgurJpg(s) { return /^https?:\/\/i\.imgur\.com\/[^?#]+\.jpg(\?.*)?$/i.test(s); }
+  // Anything that isn't a proper imgur JPG needs attention
+  function needsConvert(s) { return !isImgurJpg(s); }
 
   function nameToFilename(name) {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.jpg';
@@ -4757,7 +4759,8 @@
       const key = c.name + '|' + c.image;
       if (imgAuditResults[key] !== undefined) { resolve(); return; } // already cached
 
-      if (isUrl(c.image))    { imgAuditResults[key] = 'url';    resolve(); return; }
+      if (isImgurJpg(c.image)) { imgAuditResults[key] = 'ok';     resolve(); return; } // ✅ proper imgur JPG
+      if (isUrl(c.image))    { imgAuditResults[key] = 'url';    resolve(); return; } // ⚠️ URL but not imgur JPG
       if (isBase64(c.image)) { imgAuditResults[key] = 'base64'; resolve(); return; }
 
       // Local path — test-load it to see if the file actually exists in the repo
@@ -4892,7 +4895,7 @@
     const remaining = allNeedAttention.filter(c => !convDone.has(c.name));
 
     if (!allNeedAttention.length) {
-      info.innerHTML = '✅ All <strong>' + all.length + '</strong> characters have valid local images!';
+      info.innerHTML = '✅ All <strong>' + all.length + '</strong> characters use imgur JPG images!';
       list.innerHTML = '';
       genBtn.style.display = 'none';
       document.getElementById('url-code-wrap').classList.remove('show');
@@ -4907,7 +4910,7 @@
 
     let infoText = '';
     if (b64Count)    infoText += '<strong>' + b64Count    + '</strong> base64 image'  + (b64Count>1?'s':'')    + ' to convert. ';
-    if (urlCount)    infoText += '<strong>' + urlCount    + '</strong> URL image'      + (urlCount>1?'s':'')    + ' to localise. ';
+    if (urlCount)    infoText += '<strong>' + urlCount    + '</strong> image' + (urlCount>1?'s':'') + ' not on imgur as .jpg — needs fixing. ';
     if (brokenCount) infoText += '<strong style="color:var(--wrong)">' + brokenCount  + '</strong> broken local path' + (brokenCount>1?'s':'') + ' (file missing from repo). ';
     if (!remaining.length) infoText = '✅ All ' + doneCount + ' character' + (doneCount!==1?'s':'') + ' marked done!';
     if (doneCount > 0 && remaining.length > 0) infoText += '<span style="color:var(--correct);font-weight:600"> (' + doneCount + ' done ✓)</span>';
@@ -4953,7 +4956,7 @@
         nm.textContent = c.name;
         nm.style.cssText = 'text-decoration:line-through; color:var(--muted);';
         const sr = document.createElement('div'); sr.className = 'url-conv-series';
-        const tag = isBroken ? '  ⚠️ Broken path' : isB64 ? '  📁 Uploaded image' : '  🔗 URL';
+        const tag = isBroken ? '  ⚠️ Broken path' : isB64 ? '  📁 Uploaded image' : '  ⚠️ Not imgur JPG';
         sr.textContent = (c.series || '') + tag + '  ✓ Done';
         sr.style.color = 'var(--correct)';
         meta.appendChild(nm); meta.appendChild(sr);
@@ -5006,7 +5009,7 @@
       const meta = document.createElement('div'); meta.style.flex = '1';
       const nm = document.createElement('div'); nm.className = 'url-conv-name'; nm.textContent = c.name;
       const sr = document.createElement('div'); sr.className = 'url-conv-series';
-      const tag = isBroken ? '  ⚠️ Broken path' : isB64 ? '  📁 Uploaded image' : '  🔗 URL';
+      const tag = isBroken ? '  ⚠️ Broken path' : isB64 ? '  📁 Uploaded image' : '  ⚠️ Not imgur JPG';
       sr.textContent = (c.series || '') + tag;
       if (isBroken) sr.style.color = 'var(--wrong)';
       meta.appendChild(nm); meta.appendChild(sr);
