@@ -2200,6 +2200,14 @@
       <div class="mod-char-count" id="mod-char-count">0 characters</div>
     </div>
 
+    <div id="gist-update-banner" style="display:none; width:100%; background:rgba(255,137,6,0.08); border:1.5px solid rgba(255,137,6,0.3); border-radius:12px; padding:11px 14px; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:4px;">
+      <div style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--accent);">
+        <span style="font-size:1rem;">🔄</span>
+        <span id="gist-update-msg">New content loaded from Gist</span>
+      </div>
+      <button onclick="location.reload()" style="background:var(--accent); color:#000; border:none; border-radius:8px; padding:6px 14px; font-size:0.8rem; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">Reload page</button>
+    </div>
+
     <div class="mod-tabs">
       <button class="mod-tab-btn active" data-modtab="add">➕ Add</button>
       <button class="mod-tab-btn" data-modtab="edit">✏️ Edit</button>
@@ -6343,7 +6351,15 @@
             window.OPEDS.push(o); added++;
           }
         });
-        if (added) buildSeriesFilter();
+        if (added) {
+          buildSeriesFilter();
+          const banner = document.getElementById('gist-update-banner');
+          const msg = document.getElementById('gist-update-msg');
+          if (banner) {
+            if (msg) msg.textContent = `${added} new item${added !== 1 ? 's' : ''} loaded from Gist`;
+            banner.style.display = 'flex';
+          }
+        }
       }).catch(() => {});
       return;
     }
