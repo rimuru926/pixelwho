@@ -6827,6 +6827,10 @@
         });
         if (changed) {
           buildSeriesFilter(true); 
+          // Refresh Mod Panel UI if it's open
+          if (typeof renderSeriesLibrary === 'function') renderSeriesLibrary();
+          if (typeof renderOpedEntryList === 'function') renderOpedEntryList();
+          
           (chars||[]).forEach(c => {
             if (!c || !c.name) return;
             Object.keys(imgAuditResults).forEach(k => { if (k.startsWith(c.name + '|')) delete imgAuditResults[k]; });
@@ -6844,6 +6848,9 @@
         console.log("📥 Data received, merging...");
         setCachedGist(data.chars, data.opeds);
         mergeData(data.chars, data.opeds);
+        // Ensure UI is refreshed after first load
+        if (typeof renderSeriesLibrary === 'function') renderSeriesLibrary();
+        if (typeof renderOpedEntryList === 'function') renderOpedEntryList();
       }
       bootGame();
     }).catch(e => {
