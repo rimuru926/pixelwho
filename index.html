@@ -5954,7 +5954,16 @@
     ytPlayer = new YT.Player('oped-yt-player', {
       height: '1', width: '1',
       videoId: '',
-      playerVars: { autoplay: 0, controls: 0, rel: 0, playsinline: 1, enablejsapi: 1 },
+      playerVars: { 
+        autoplay: 0, 
+        controls: 0, 
+        rel: 0, 
+        playsinline: 1, 
+        enablejsapi: 1,
+        iv_load_policy: 3, // Hide annotations
+        modestbranding: 1, // Hide YouTube logo
+        showinfo: 0        // Hide video title and uploader
+      },
       events: {
         onReady: () => {
           ytReady = true;
@@ -6639,15 +6648,19 @@
       opedStartLocked = true;
 
       if (parsed.type === 'youtube') {
-        ytPlayer.loadVideoById({ videoId: parsed.id, startSeconds: 0 });
-        modPreviewTimer = setInterval(() => {
-          const cur = ytPlayer.getCurrentTime();
-          const dur = ytPlayer.getDuration();
-          if (dur > 0) {
-            updateProgress(cur, dur);
-            playBtn.textContent = '⏸ Playing YouTube';
-          }
-        }, 500);
+        // Use cueVideoById first to clear any previous state, then play
+        ytPlayer.cueVideoById({ videoId: parsed.id, startSeconds: 0 });
+        setTimeout(() => {
+          ytPlayer.playVideo();
+          modPreviewTimer = setInterval(() => {
+            const cur = ytPlayer.getCurrentTime();
+            const dur = ytPlayer.getDuration();
+            if (dur > 0) {
+              updateProgress(cur, dur);
+              playBtn.textContent = '⏸ Playing YouTube';
+            }
+          }, 500);
+        }, 200);
       } else if (parsed.type === 'animethemes' || parsed.type === 'direct') {
         atPlayer.src = parsed.fullUrl;
         atPlayer.volume = opedVolume / 100;
