@@ -5973,14 +5973,7 @@
       document.getElementById('oped-replay-btn').disabled = (opedState === 'done');
       document.getElementById('oped-replay-btn').textContent = '↺ Replay Clip';
     });
-    atPlayer.addEventListener('error', () => {
-      clearTimeout(opedErrorTimer);
-      opedErrorTimer = setTimeout(() => {
-        // If it's already playing or buffered enough, ignore minor errors
-        if (atPlayer.readyState >= 2 || !atPlayer.paused) return;
-        document.getElementById('oped-status-text').textContent = 'Media unavailable — try another';
-        stopOpedBars();
-      }, 2000);
+    atPlayer.addEventListener('error', () => { if (atPlayer.readyState >= 2 || !atPlayer.paused) return; document.getElementById('oped-status-text').textContent = 'Media unavailable'; stopOpedBars(); });
     });
   }
 
@@ -6019,19 +6012,7 @@
             startOpedVisuals();
           }
         },
-        onError: (e) => {
-          clearTimeout(opedErrorTimer);
-          opedErrorTimer = setTimeout(() => {
-            // If the player state is already PLAYING (1) or BUFFERING (3), ignore the error
-            const state = ytPlayer.getPlayerState();
-            if (state === 1 || state === 3) return;
-            
-            document.getElementById('oped-status-text').textContent = 'Media unavailable — try another';
-            document.getElementById('oped-status-text').classList.remove('playing');
-            stopOpedBars();
-            document.getElementById('oped-replay-btn').disabled = false;
-            document.getElementById('oped-replay-btn').textContent = '↺ Replay Clip';
-          }, 2000);
+        onError: (e) => { const state = ytPlayer.getPlayerState(); if (state === 1 || state === 3) return; document.getElementById('oped-status-text').textContent = 'Media unavailable'; stopOpedBars(); }
         }
       }
     });
@@ -6171,7 +6152,7 @@
             opedStart = Math.floor(Math.random() * maxStart) + 5;
             opedStartLocked = true;
           }
-          ytPlayer.loadVideoById({
+          if(ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById({
             videoId: opedCurrent.youtubeId,
             startSeconds: opedStart,
             endSeconds: opedStart + opedDuration + 1
@@ -6190,8 +6171,41 @@
     document.getElementById('oped-bars').classList.remove('playing');
   }
 
+
+  let opedTypeFilter = 'both';
+  let opedSeriesFilter = '';
+
+  document.querySelectorAll('.oped-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.oped-type-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.borderColor = 'var(--border)';
+        b.style.color = 'var(--text)';
+      });
+      btn.classList.add('active');
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
+      opedTypeFilter = btn.dataset.type;
+    });
+  });
+
+  document.getElementById('oped-series-search')?.addEventListener('input', (e) => {
+    opedSeriesFilter = e.target.value.toLowerCase().trim();
+  });
+
+  function getFilteredOpedPool() {
+    let pool = [...(window.OPEDS || [])];
+    if (opedTypeFilter !== 'both') {
+      pool = pool.filter(o => o.type === opedTypeFilter);
+    }
+    if (opedSeriesFilter) {
+      pool = pool.filter(o => (o.series || '').toLowerCase().includes(opedSeriesFilter));
+    }
+    return pool.sort(() => Math.random() - 0.5);
+  }
+
   function initOpedGame() {
-    opedPool = [...(window.OPEDS||[])].sort(() => Math.random() - 0.5);
+    opedPool = getFilteredOpedPool();
     loadOpedNext();
   }
 
@@ -6238,7 +6252,7 @@
     document.getElementById('oped-dots').style.display='';
     document.getElementById('oped-input').style.display='';
 
-    if (!opedPool.length) opedPool = [...(window.OPEDS||[])].sort(() => Math.random() - 0.5);
+    if (!opedPool.length) opedPool = getFilteredOpedPool();
     // Prevent same OP/ED appearing back-to-back
     if (opedPool.length > 1 && opedPool[opedPool.length - 1]?.youtubeId === opedCurrent?.youtubeId) {
       const swap = Math.floor(Math.random() * (opedPool.length - 1));
