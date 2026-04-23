@@ -10,10 +10,106 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">function forceRefreshData() { localStorage.removeItem("pixelwho-gist-cache-v1"); localStorage.removeItem("gist-etag-640a8cd08e02caf5732c0f98c6cb7af1"); location.reload(true); } setInterval(() => { const count = (window.CHARACTERS || []).length; document.getElementById("debug-info").innerHTML = "Chars: " + count; }, 2000);</script>
-  <script src="https://www.youtube.com/iframe_api">function forceRefreshData() { localStorage.removeItem("pixelwho-gist-cache-v1"); localStorage.removeItem("gist-etag-640a8cd08e02caf5732c0f98c6cb7af1"); location.reload(true); } setInterval(() => { const count = (window.CHARACTERS || []).length; document.getElementById("debug-info").innerHTML = "Chars: " + count; }, 2000);</script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js">function forceRefreshData() { localStorage.removeItem("pixelwho-gist-cache-v1"); localStorage.removeItem("gist-etag-640a8cd08e02caf5732c0f98c6cb7af1"); location.reload(true); } setInterval(() => { const count = (window.CHARACTERS || []).length; document.getElementById("debug-info").innerHTML = "Chars: " + count; }, 2000);</script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js">function forceRefreshData() { localStorage.removeItem("pixelwho-gist-cache-v1"); localStorage.removeItem("gist-etag-640a8cd08e02caf5732c0f98c6cb7af1"); location.reload(true); } setInterval(() => { const count = (window.CHARACTERS || []).length; document.getElementById("debug-info").innerHTML = "Chars: " + count; }, 2000);</script>
+ 
+  function forceRefreshData() {
+    localStorage.removeItem('pixelwho-gist-cache-v1');
+    localStorage.removeItem('gist-etag-640a8cd08e02caf5732c0f98c6cb7af1');
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  function clearAllCaches() {
+    if (!confirm("This will clear all local data. Continue?")) return;
+    localStorage.clear();
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  setInterval(() => {
+    const info = document.getElementById('maintenance-info');
+    if (info && info.offsetParent !== null) {
+      const count = (window.CHARACTERS || []).length;
+      info.innerHTML = `Session: ${count} characters loaded`;
+    }
+  }, 2000);
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+ 
+  function forceRefreshData() {
+    localStorage.removeItem('pixelwho-gist-cache-v1');
+    localStorage.removeItem('gist-etag-640a8cd08e02caf5732c0f98c6cb7af1');
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  function clearAllCaches() {
+    if (!confirm("This will clear all local data. Continue?")) return;
+    localStorage.clear();
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  setInterval(() => {
+    const info = document.getElementById('maintenance-info');
+    if (info && info.offsetParent !== null) {
+      const count = (window.CHARACTERS || []).length;
+      info.innerHTML = `Session: ${count} characters loaded`;
+    }
+  }, 2000);
+  <script src="https://www.youtube.com/iframe_api"></script>
+ 
+  function forceRefreshData() {
+    localStorage.removeItem('pixelwho-gist-cache-v1');
+    localStorage.removeItem('gist-etag-640a8cd08e02caf5732c0f98c6cb7af1');
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  function clearAllCaches() {
+    if (!confirm("This will clear all local data. Continue?")) return;
+    localStorage.clear();
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  setInterval(() => {
+    const info = document.getElementById('maintenance-info');
+    if (info && info.offsetParent !== null) {
+      const count = (window.CHARACTERS || []).length;
+      info.innerHTML = `Session: ${count} characters loaded`;
+    }
+  }, 2000);
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+ 
+  function forceRefreshData() {
+    localStorage.removeItem('pixelwho-gist-cache-v1');
+    localStorage.removeItem('gist-etag-640a8cd08e02caf5732c0f98c6cb7af1');
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  function clearAllCaches() {
+    if (!confirm("This will clear all local data. Continue?")) return;
+    localStorage.clear();
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  setInterval(() => {
+    const info = document.getElementById('maintenance-info');
+    if (info && info.offsetParent !== null) {
+      const count = (window.CHARACTERS || []).length;
+      info.innerHTML = `Session: ${count} characters loaded`;
+    }
+  }, 2000);
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -2222,6 +2318,7 @@
       <button class="mod-tab-btn" data-modtab="series">📺 Series</button>
       <button class="mod-tab-btn" data-modtab="sync">☁️ Sync</button>
       <button class="mod-tab-btn" data-modtab="oped">🎵 OP/ED</button>
+      <button class="mod-tab-btn" data-modtab="maintenance">🛠 Maintenance</button>
 <!-- Suggestions tab button removed -->
     </div>
 
@@ -2471,6 +2568,27 @@
     </div>
 
 
+ 
+    <div class="mod-tab-panel" id="modtab-maintenance">
+      <div class="mod-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 12px;">
+        <div style="font-size:0.85rem; color:var(--muted); line-height:1.5;">
+          Use these tools if images are showing old versions or if data seems out of sync.
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-weight:bold; color:var(--accent); font-size:0.9rem;">Force Refresh</div>
+          <div style="font-size:0.8rem; color:var(--muted);">Clears the local Gist cache and forces the browser to download fresh data and images.</div>
+          <button onclick="forceRefreshData()" style="width:100%; background:var(--accent); border:none; color:black; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold; font-family:inherit;">🔄 Force Refresh Data & Images</button>
+        </div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+          <div style="font-weight:bold; color:var(--wrong); font-size:0.9rem;">Deep Clean</div>
+          <div style="font-size:0.8rem; color:var(--muted);">Clears ALL local storage and caches. Use this as a last resort if the refresh above doesn't work.</div>
+          <button onclick="clearAllCaches()" style="width:100%; background:rgba(242,95,76,0.1); border:1.5px solid var(--wrong); color:var(--wrong); padding:10px; border-radius:8px; cursor:pointer; font-weight:bold; font-family:inherit;">🗑 Clear All Local Data</button>
+        </div>
+        <div id="maintenance-info" style="font-family:monospace; font-size:0.75rem; color:var(--muted); text-align:center; margin-top:10px; opacity:0.6;">Checking status...</div>
+      </div>
+    </div>
     <div class="mod-tab-panel" id="modtab-oped">
 
       <div class="mod-form" id="oped-add-form">
@@ -6967,6 +7085,30 @@ self.addEventListener('fetch', e => {
   }
 
   
-  function forceRefreshData() { localStorage.removeItem("pixelwho-gist-cache-v1"); localStorage.removeItem("gist-etag-640a8cd08e02caf5732c0f98c6cb7af1"); location.reload(true); } setInterval(() => { const count = (window.CHARACTERS || []).length; document.getElementById("debug-info").innerHTML = "Chars: " + count; }, 2000);</script>
-<div id="debug-panel" style="position:fixed; bottom:10px; right:10px; z-index:9999; background:rgba(0,0,0,0.8); padding:10px; border-radius:8px; border:1px solid var(--accent); font-size:12px; color:white; max-width:200px;"><div style="font-weight:bold; margin-bottom:5px; color:var(--accent);">DEBUG PANEL</div><div id="debug-info" style="margin-bottom:8px; opacity:0.8;">Loading...</div><button onclick="forceRefreshData()" style="width:100%; background:var(--accent); border:none; color:black; padding:5px; border-radius:4px; cursor:pointer; font-weight:bold;">FORCE REFRESH DATA</button></div></body>
+ 
+  function forceRefreshData() {
+    localStorage.removeItem('pixelwho-gist-cache-v1');
+    localStorage.removeItem('gist-etag-640a8cd08e02caf5732c0f98c6cb7af1');
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  function clearAllCaches() {
+    if (!confirm("This will clear all local data. Continue?")) return;
+    localStorage.clear();
+    if ('caches' in window) {
+      caches.keys().then(keys => { keys.forEach(key => caches.delete(key)); });
+    }
+    location.reload(true);
+  }
+  setInterval(() => {
+    const info = document.getElementById('maintenance-info');
+    if (info && info.offsetParent !== null) {
+      const count = (window.CHARACTERS || []).length;
+      info.innerHTML = `Session: ${count} characters loaded`;
+    }
+  }, 2000);
+  </script>
+</body>
 </html>
