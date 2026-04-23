@@ -5974,7 +5974,9 @@
       document.getElementById('oped-replay-btn').textContent = '↺ Replay Clip';
     });
     atPlayer.addEventListener('error', () => {
-      document.getElementById('oped-status-text').textContent = 'Video unavailable — try another';
+      // If it's already playing or buffered enough, ignore minor errors
+      if (atPlayer.readyState >= 2 || !atPlayer.paused) return;
+      document.getElementById('oped-status-text').textContent = 'Media unavailable — try another';
       stopOpedBars();
     });
   }
@@ -6015,7 +6017,11 @@
           }
         },
         onError: (e) => {
-          document.getElementById('oped-status-text').textContent = 'Video unavailable — try another';
+          // If the player state is already PLAYING (1) or BUFFERING (3), ignore the error
+          const state = ytPlayer.getPlayerState();
+          if (state === 1 || state === 3) return;
+          
+          document.getElementById('oped-status-text').textContent = 'Media unavailable — try another';
           document.getElementById('oped-status-text').classList.remove('playing');
           stopOpedBars();
           document.getElementById('oped-replay-btn').disabled = false;
@@ -6049,7 +6055,7 @@
 
   function startOpedVisuals() {
     const statusEl = document.getElementById('oped-status-text');
-    statusEl.textContent = 'Playing…';
+    statusEl.textContent = 'Playing Music…';
     statusEl.classList.add('playing');
     document.getElementById('oped-bars').classList.add('playing');
     
