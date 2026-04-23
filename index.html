@@ -7055,6 +7055,77 @@ self.addEventListener('fetch', e => {
     opedSeriesFilter = e.target.value.toLowerCase().trim();
   });
 
+
+  function renderOpedSeriesChips() {
+    const container = document.getElementById('oped-series-chips');
+    if (!container) return;
+    
+    const opeds = window.OPEDS || [];
+    const seriesMap = {};
+    opeds.forEach(o => {
+      if (o.series) seriesMap[o.series] = (seriesMap[o.series] || 0) + 1;
+    });
+    
+    const sortedSeries = Object.keys(seriesMap).sort();
+    
+    let html = `<div class="oped-chip active" data-series="" style="padding:6px 12px; background:var(--surface2); border:1.5px solid var(--accent); border-radius:20px; color:var(--accent); cursor:pointer; font-size:0.75rem; font-weight:600; white-space:nowrap;">All (${opeds.length})</div>`;
+    
+    sortedSeries.forEach(s => {
+      html += `<div class="oped-chip" data-series="${s.replace(/"/g, '&quot;')}" style="padding:6px 12px; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; color:var(--muted); cursor:pointer; font-size:0.75rem; font-weight:600; white-space:nowrap;">${s} (${seriesMap[s]})</div>`;
+    });
+    
+    container.innerHTML = html;
+    
+    container.querySelectorAll('.oped-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        container.querySelectorAll('.oped-chip').forEach(c => {
+          c.classList.remove('active');
+          c.style.borderColor = 'var(--border)';
+          c.style.color = 'var(--muted)';
+          c.style.background = 'var(--surface)';
+        });
+        chip.classList.add('active');
+        chip.style.borderColor = 'var(--accent)';
+        chip.style.color = 'var(--accent)';
+        chip.style.background = 'var(--surface2)';
+        
+        opedSeriesFilter = chip.dataset.series.toLowerCase();
+        document.getElementById('oped-series-search').value = chip.dataset.series;
+      });
+    });
+  }
+
+  // Call render when OP/ED tab is opened or data is loaded
+  const originalOpenTab = window.openTab; // If it exists
+  // We'll hook into the existing tab click listener
+  document.querySelectorAll('.mod-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.modtab === 'oped') {
+        setTimeout(renderOpedSeriesChips, 100);
+      }
+    });
+  });
+  
+  // Also hook into the search bar to update chips
+  document.getElementById('oped-series-search')?.addEventListener('input', (e) => {
+    const val = e.target.value.toLowerCase();
+    const chips = document.querySelectorAll('.oped-chip');
+    chips.forEach(chip => {
+      const s = chip.dataset.series.toLowerCase();
+      if (s === val || (val === "" && s === "")) {
+        chip.classList.add('active');
+        chip.style.borderColor = 'var(--accent)';
+        chip.style.color = 'var(--accent)';
+        chip.style.background = 'var(--surface2)';
+      } else {
+        chip.classList.remove('active');
+        chip.style.borderColor = 'var(--border)';
+        chip.style.color = 'var(--muted)';
+        chip.style.background = 'var(--surface)';
+      }
+    });
+  });
+
   function getFilteredOpedPool() {
     let pool = [...(window.OPEDS || [])];
     if (opedTypeFilter !== 'both') {
