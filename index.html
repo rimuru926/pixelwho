@@ -2,8 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
   <meta name="theme-color" content="#0f0e17">
+  <meta name="description" content="Guess anime characters from a screenshot, a blurred image or a tiny crop. Also has a quote quiz, an OP/ED quiz, tier lists, Kiss Marry Kill and a vs-battle mode. Free, plays in your browser.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PixelWho">
+  <meta property="og:title" content="PixelWho: anime character guessing games">
+  <meta property="og:description" content="Guess anime characters from a screenshot, a blurred image or a tiny crop. Quote quiz, OP/ED quiz, tier lists and a vs-battle mode.">
+  <meta property="og:url" content="https://rimuru926.github.io/pixelwho/">
+  <meta property="og:image" content="https://rimuru926.github.io/pixelwho/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="PixelWho: anime character guessing games">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://rimuru926.github.io/pixelwho/og-image.png">
+  <link rel="canonical" href="https://rimuru926.github.io/pixelwho/">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%230f0e17%27/%3E%3Ctext x=%2732%27 y=%2747%27 font-size=%2744%27 font-family=%27Arial,sans-serif%27 font-weight=%27700%27 text-anchor=%27middle%27 fill=%27%23ff8906%27%3EP%3C/text%3E%3C/svg%3E">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>PixelWho</title>
@@ -96,6 +110,8 @@
     }
     #streak-count { color: var(--accent); min-width: 14px; text-align: center; }
     #streak-count.bump { animation: bump 0.25s ease; }
+    .streak-badge { flex-direction: column; gap: 0; padding: 4px 12px; line-height: 1.15; border-radius: 16px; }
+    .streak-badge > span:first-child { font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
     @keyframes bump { 50% { transform: scale(1.5); } }
 
  /* Drawer */
@@ -3251,6 +3267,27 @@
     .vs-chip.rm{padding:5px 8px;margin-left:-4px}
     .vs-in{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:16px}
 
+
+    .vs-opt.vs-draw{flex:0 0 auto;justify-content:center;padding:6px 12px}
+
+    .vs-edit-bar{display:flex;align-items:center;gap:8px;margin-top:10px}
+    .vs-edit-bar span{flex:1}
+    .vs-edit-bar .vs-btn{flex:none;padding:7px 12px;font-size:.78rem}
+
+    @media (max-width: 600px){.vs-bar{padding-right:76px}}
+
+    .vs-rk{display:flex;align-items:center;gap:10px;border:1.5px solid var(--border);background:var(--surface);border-radius:12px;padding:8px 12px}
+    .vs-rk-n{width:22px;text-align:center;font-weight:800;color:var(--accent)}
+    .vs-rk img{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+    .vs-rk-r{display:flex;flex-direction:column;text-align:right;font-size:.8rem;line-height:1.2}
+    .vs-rk-r span{color:var(--muted);font-size:.72rem}
+ /* Site-wide: allow pinch-zoom, but keep text fields at 16px on touch screens so iOS does not zoom in on focus */
+    html{touch-action:manipulation}
+    @media (pointer: coarse){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px!important}}
+
+ /* Site-wide: on phones the tier list top bar wraps so Undo, Reset and Export stay on screen */
+    @media (max-width: 520px){.tl-top{flex-wrap:wrap}.tl-category-wrap{flex:1 1 100%}.tl-undo-btn,.tl-reset-btn,.tl-export-btn{flex:1 1 0}}
+
     .kmk-wrap {
       width: 100%; max-width: 100%;
       padding: 16px 16px 48px;
@@ -3783,14 +3820,14 @@
 
   <div id="versus-section" class="section">
     <div class="vs-wrap">
-      <div class="vs-title">Who Wins?</div>
       <div class="sop-tabs">
         <button type="button" class="sop-tab active" id="vs-tab-play">Play</button>
         <button type="button" class="sop-tab" id="vs-tab-hist">History <span id="vs-hist-n"></span></button>
+        <button type="button" class="sop-tab" id="vs-tab-rank">Rankings</button>
       </div>
       <div id="vs-play" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;">
         <div class="sop-tabs" id="vs-cfg"></div>
-        <details class="vs-edit" id="vs-edit" style="display:none"><summary id="vs-edit-sum">Edit categories</summary><div id="vs-edit-body"></div></details>
+        <details class="vs-edit" id="vs-edit"><summary id="vs-edit-sum">Edit categories</summary><div id="vs-edit-body"></div></details>
         <div class="vs-sub" id="vs-sub"></div>
         <div class="vs-fighters" id="vs-fighters"></div>
         <div class="vs-sub" id="vs-score"></div>
@@ -3801,6 +3838,7 @@
         </div>
       </div>
       <div id="vs-hist" style="width:100%;display:none;flex-direction:column;gap:8px;"></div>
+      <div id="vs-rank" style="width:100%;display:none;flex-direction:column;gap:8px;"></div>
     </div>
   </div>
 
@@ -4159,7 +4197,7 @@
       </div>
       <div id="oped-series-chips" class="series-filter" style="padding:0 0 8px 0; margin-bottom:10px;"></div>
 
-      <div style="display:flex; justify-content:center; gap:8px;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">
         <div style="display:flex; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:4px; gap:4px;">
           <button type="button" class="oped-type-btn" data-type="all" style="padding:6px 12px; background:transparent; border:1.5px solid var(--border); border-radius:9px; color:var(--text); font-family:Outfit,sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer;">All</button>
           <button type="button" class="oped-type-btn active" data-type="both" style="padding:6px 12px; background:var(--surface2); border:1.5px solid var(--accent); border-radius:9px; color:var(--accent); font-family:Outfit,sans-serif; font-size:0.75rem; font-weight:600; cursor:pointer;">OP+ED</button>
@@ -6267,7 +6305,9 @@
     hintReveal.classList.add('show');
   });
 
-  function buildShareText(spoilerFree, result) {
+  function siteLink() { return location.href.split('#')[0].split('?')[0]; }
+  function buildShareText(spoilerFree, result) { return buildShareTextBase(spoilerFree, result) + '\n' + siteLink(); }
+  function buildShareTextBase(spoilerFree, result) {
     const maxG = result ? (result.maxGuesses || 5) : (cropMode ? 6 : 5);
     const wrongCount = result ? result.wrongCount : (maxG - guessesLeft);
     const won = result ? result.won : gameState === 'correct';
@@ -6290,10 +6330,10 @@
     } else {
       if(won) return (dailyMode||result)
         ? `I got the PixelWho Daily in ${guessNum}/${maxG} guesses. It was ${name}. (${today})`
-        : `I got ${name} in ${guessNum}/${maxG} on PixelWho${modeTag}!`;
+        : `I got ${name} in ${guessNum}/${maxG} on PixelWho${modeTag}.`;
       else return (dailyMode||result)
         ? `I failed the PixelWho Daily. It was ${name}. (${today})`
-        : `I couldn't get ${name} on PixelWho${modeTag}!`;
+        : `I couldn't get ${name} on PixelWho${modeTag}.`;
     }
   }
 
@@ -6401,7 +6441,7 @@
     gInput.classList.remove('shake'); void gInput.offsetWidth; gInput.classList.add('shake');
  // Show initials after 3 wrong guesses (free, no streak cost)
     if(maxGuesses - guessesLeft >= 3 && !initialsHint.classList.contains('show')) showInitialsHint();
-    if(guessesLeft<=(maxGuesses-2) && !hintUsed) hintBtn.style.display='';
+    if(guessesLeft<=(maxGuesses-2) && !hintUsed) hintBtn.style.display='block'; // was '', which left the CSS display:none in place so the hint never showed
  // Update shield visibility
     updateShieldUI();
     if(!guessesLeft) lose();
@@ -6530,7 +6570,8 @@
 
   document.addEventListener('keydown', e => {
     const focused = document.activeElement;
-    const typingInInput = focused && (focused.tagName==='INPUT'||focused.tagName==='TEXTAREA');
+    const typingTarget = e.target || focused; // the input that received the key, not whatever has focus after it gets disabled
+    const typingInInput = typingTarget && (typingTarget.tagName==='INPUT'||typingTarget.tagName==='TEXTAREA');
     const gameActive = document.getElementById('game-section').classList.contains('active');
     const tierActive = document.getElementById('tierlist-section').classList.contains('active');
 
@@ -7217,7 +7258,8 @@
   // Initialize Firebase (using compat mode for easier integration into existing script)
   (function initFirebase() {
     if (typeof firebase === 'undefined') {
-      console.warn('Firebase SDK not loaded — leaderboard and wishlist unavailable.');
+      console.warn('Firebase SDK not loaded: leaderboard and wishlist unavailable.');
+      const lbEl = document.getElementById('leaderboard-list'); if (lbEl) lbEl.innerHTML = '<div class="lb-empty">Leaderboard unavailable. Could not reach the server.</div>';
       return;
     }
     try {
@@ -7622,7 +7664,7 @@
           await navigator.share({
             files: [file],
             title: 'My PixelWho Tier List',
-            text: 'My character rankings on PixelWho'
+            text: 'My character rankings on PixelWho ' + location.href.split('#')[0].split('?')[0]
           });
         } catch (shareErr) {
  // Fallback to download if share is cancelled or fails
@@ -10599,44 +10641,47 @@
   (function () {
     const KEY = 'pixelwho-versus-v1';
     const GROUPS = [
-      ['Combat', [
+      ['Offense', [
+        ['Attack Potency (AP)', 'Energy behind a single attack: how hard one hit lands.'],
+        ['Destructive Capacity (DC)', 'Total amount or area they can destroy, not just one hit (that is AP).'],
+        ['Striking Strength (ST)', 'Force of physical blows like punches and kicks, not energy attacks.'],
+        ['Range', 'How far away they can attack.'],
         ['Melee Combat', 'Close-range fighting with fists, blades or other weapons.'],
-        ['Ranged Combat', 'Fighting from a distance: guns, bows, projectiles, beams.'],
         ['Fighting Skill', 'Trained technique and form, separate from raw power.'],
-        ['Weapons & Gear', 'How good and useful their weapons, armor and equipment are.'],
-        ['Raw Power', 'Destructive force of their strongest attacks, physical or not.'],
-        ['Area Damage', 'Hitting many enemies or a huge area at once.'],
+        ['Standard Equipment', 'Gear they normally use, like a signature weapon or armor.'],
         ['Stealth & Ambush', 'Sneaking, surprise attacks and silent takedowns.'],
         ['Outnumbered', 'Holding up in a fight against many enemies at once.']
       ]],
       ['Body', [
-        ['Strength', 'Lifting, hitting and overpowering ability.'],
-        ['Speed', 'Movement and attack speed, on foot or in the air. Decides races.'],
-        ['Reaction Time', 'Noticing and responding to danger instantly.'],
+        ['Lifting Strength (LS)', 'How much weight they can lift or hold.'],
+        ['Combat Speed', 'How fast they move and attack during a fight.'],
+        ['Reactions', 'How fast they notice and respond to an attack, separate from movement speed.'],
+        ['Travel Speed', 'How fast they cover long distances: running, flying, teleporting.'],
         ['Durability', 'Taking hits and pain and staying on their feet.'],
         ['Stamina', 'Fighting for a long time without wearing out.'],
-        ['Healing', 'Recovering from injuries mid-fight or between fights.'],
-        ['Agility', 'Balance, flexibility and acrobatic movement.'],
-        ['Mobility', 'Flying, teleporting or crossing ground in unusual ways.'],
-        ['Hardiness', 'Surviving extreme heat, cold, poison, vacuum and similar.']
+        ['Regeneration', 'Healing from injuries during or between fights.'],
+        ['Agility', 'Balance, flexibility and acrobatic movement.']
       ]],
       ['Powers', [
-        ['Hax', 'Abilities that skip or bend the normal rules of a fight: instant-kill, time, fate, reality warping and similar.'],
+        ['Hax', 'Abilities that bypass or ignore stats instead of beating them: instant-kill, durability negation, reality warping, time, fate.'],
+        ['Resistances', 'Protection against hax and status effects: poison, mind control, soul attacks, extreme heat or cold.'],
+        ['Immortality', 'How hard they are to truly kill: returning from death or needing a special method to finish them.'],
         ['Versatility', 'How many different tools, tricks and abilities they have.'],
         ['Defensive Abilities', 'Shields, barriers, counters and other ways to stop attacks.'],
         ['Power Control', 'Using their powers precisely without waste or losing control.'],
-        ['Growth Potential', 'How much stronger they can still become over time.'],
-        ['Unrevealed Potential', 'How much you suspect they still have that we haven\'t seen.'],
         ['Status Effects', 'Poison, curses, paralysis and other ways to weaken or disable a foe.'],
         ['Summons & Clones', 'Calling creatures, spirits or copies to fight alongside them.'],
-        ['Power-Ups', 'Forms, modes and limit-breaks that boost them.']
+        ['Power-Ups', 'Forms and limit-breaks that boost their stats for a while.'],
+        ['Growth Potential', 'How much stronger they can still get through training or story progress.'],
+        ['Unrevealed Potential', 'How much you suspect they still have that we haven\'t seen.'],
+        ['Feats', 'Things they have actually shown in the story, the evidence behind every stat.'],
+        ['Weaknesses', 'How few exploitable weaknesses they have (fewer is better).']
       ]],
       ['Mind', [
-        ['Intelligence', 'General brainpower and problem solving.'],
-        ['Battle Tactics', 'Planning ahead, reading opponents and using abilities cleverly mid-fight.'],
+        ['IQ (Intelligence)', 'General intelligence: problem solving and learning.'],
+        ['Battle IQ (BIQ)', 'Intelligence in a fight: tactics, reading opponents, adapting. Decides fights with no powers.'],
         ['Experience', 'Years and range of real fights and hardships survived.'],
         ['Willpower', 'Refusing to give up or break, and staying composed under pressure.'],
-        ['Mental Defense', 'Resisting mind control, illusions, fear and manipulation.'],
         ['Knowledge', 'Lore, science, magic or secrets they know.'],
         ['Deception', 'Lying, bluffing, baiting, traps and fighting dirty.']
       ]],
@@ -10656,7 +10701,7 @@
         ['Wealth', 'Money, property and supplies.'],
         ['Allies', 'People and groups who would back them up.'],
         ['Status & Influence', 'Rank, fame, political or social power.'],
-        ['Luck', 'Things tend to go their way, including surviving just because the story needs them.'],
+        ['Luck / Plot Armor', 'Luck is things going their way; plot armor is surviving because the story needs them to.'],
         ['Technical Skills', 'Hands-on know-how: crafting, hacking, medicine, engineering.'],
         ['Everyday Life', 'Who would handle normal jobs, chores and daily life better.']
       ]],
@@ -10667,18 +10712,16 @@
         ['Apocalypse Partner', 'Who you want beside you at the end of the world or in a horror movie.']
       ]],
       ['Scenarios', [
-        ['Fight to the Death', 'No holds barred, all abilities allowed, fought to the end.'],
-        ['Friendly Spar', 'Fighting without killing intent; restraint required.'],
-        ['Powerless Fight', 'Both lose their special powers; only normal skills count.'],
-        ['Battle of Wits', 'A game of strategy, riddles or debate.']
+        ['Bloodlusted Fight', 'Both use everything they have and go straight for the kill.'],
+        ['In-Character Fight (Morals On)', 'Both fight as they normally would; those with morals will not go for the kill.'],
       ]]
     ];
     const slug = s => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-');
     const CATS = {};
     GROUPS.forEach(g => g[1].forEach(c => { CATS[slug(c[0])] = c[0]; }));
-    const SIMPLE = new Set(['Strength', 'Speed', 'Durability', 'Fighting Skill', 'Hax', 'Intelligence', 'Experience', 'Willpower', 'Fight to the Death', 'Likeability'].map(slug));
- // Categories merged or renamed in an earlier version: [old name, name it became]
-    const MERGED = [['Special Powers', 'Hax'], ['Rule-Breaking Powers', 'Hax'], ['Finishing Move', 'Raw Power'], ['Dirty Tricks', 'Deception'], ['Reading Opponents', 'Battle Tactics'], ['Creativity', 'Battle Tactics'], ['Composure', 'Willpower'], ['Pain Tolerance', 'Durability'], ['Last One Standing', 'Outnumbered'], ['Life of the Party', 'Humor'], ['Horror Movie Survivor', 'Apocalypse Partner'], ['Charisma', 'Likeability'], ['Best Friend', 'Likeability'], ['Plot Armor', 'Luck'], ['Race', 'Speed']];
+    const SIMPLE = new Set(['Attack Potency (AP)', 'Destructive Capacity (DC)', 'Combat Speed', 'Durability', 'Stamina', 'Range', 'Hax', 'Regeneration', 'Battle IQ (BIQ)', 'Bloodlusted Fight'].map(slug));
+ // Categories merged or renamed in earlier versions: [old name, name it became]
+    const MERGED = [['Special Powers', 'Hax'], ['Rule-Breaking Powers', 'Hax'], ['Finishing Move', 'Attack Potency (AP)'], ['Dirty Tricks', 'Deception'], ['Reading Opponents', 'Battle IQ (BIQ)'], ['Creativity', 'Battle IQ (BIQ)'], ['Composure', 'Willpower'], ['Pain Tolerance', 'Durability'], ['Last One Standing', 'Outnumbered'], ['Life of the Party', 'Humor'], ['Horror Movie Survivor', 'Apocalypse Partner'], ['Charisma', 'Likeability'], ['Best Friend', 'Likeability'], ['Plot Armor', 'Luck / Plot Armor'], ['Race', 'Travel Speed'], ['Raw Power', 'Attack Potency (AP)'], ['Area Damage', 'Destructive Capacity (DC)'], ['Strength', 'Striking Strength (ST)'], ['Speed', 'Combat Speed'], ['Reaction Time', 'Reactions'], ['Mobility', 'Travel Speed'], ['Healing', 'Regeneration'], ['Hardiness', 'Resistances'], ['Mental Defense', 'Resistances'], ['Battle Tactics', 'Battle IQ (BIQ)'], ['Intelligence', 'IQ (Intelligence)'], ['Weapons & Gear', 'Standard Equipment'], ['Ranged Combat', 'Range'], ['Luck', 'Luck / Plot Armor'], ['Fight to the Death', 'Bloodlusted Fight'], ['Friendly Spar', 'In-Character Fight (Morals On)'], ['Powerless Fight', 'Battle IQ (BIQ)'], ['Battle of Wits', 'IQ (Intelligence)']];
     const ALIAS = {}, LEGACY = {};
     MERGED.forEach(m => { ALIAS[slug(m[0])] = slug(m[1]); LEGACY[slug(m[0])] = m[0]; });
     const DEFAULT_MODE = 'simple'; // 'simple' | 'full' | 'custom'
@@ -10686,28 +10729,42 @@
     const esc2 = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     const PH = "https://placehold.co/120x160/221f35/ff8906?text=?";
 
-    let st = { matches: [], cur: null, cfg: { mode: DEFAULT_MODE, custom: null, mine: [] } };
+    let st = { matches: [], cur: null, cfg: { mode: DEFAULT_MODE, sel: { simple: null, full: null }, mine: [] } };
     try {
       const s = JSON.parse(localStorage.getItem(KEY) || 'null');
       if (s && Array.isArray(s.matches)) {
         st.matches = s.matches; st.cur = s.cur || null;
-        if (s.cfg) st.cfg = { mode: s.cfg.mode || DEFAULT_MODE, custom: Array.isArray(s.cfg.custom) ? s.cfg.custom : null, mine: Array.isArray(s.cfg.mine) ? s.cfg.mine : [] };
+        const o = s.cfg;
+        if (o) {
+          st.cfg.mine = Array.isArray(o.mine) ? o.mine : [];
+          if (o.sel) st.cfg.sel = { simple: Array.isArray(o.sel.simple) ? o.sel.simple : null, full: Array.isArray(o.sel.full) ? o.sel.full : null };
+          else if (o.mode === 'custom' && Array.isArray(o.custom)) st.cfg.sel.full = o.custom; // an older Custom setup becomes an edited Full
+          st.cfg.mode = (o.mode === 'full' || o.mode === 'custom') ? 'full' : 'simple';
+        }
       }
     } catch (e) {}
-    if (st.cfg.custom) st.cfg.custom = [...new Set(st.cfg.custom.map(id => ALIAS[id] || id))].filter(id => CATS[id] || st.cfg.mine.some(k => slug(k[0]) === id));
-    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
-    const snap = c => { const i = getCharImages(c)[0] || ''; return { name: c.name, series: c.series || '', img: i.startsWith('data:') ? '' : i }; };
+    const validId = id => CATS[id] || st.cfg.mine.some(k => slug(k[0]) === id);
+    ['simple', 'full'].forEach(m => { if (st.cfg.sel[m]) st.cfg.sel[m] = [...new Set(st.cfg.sel[m].map(id => (ALIAS[id] && !st.cfg.mine.some(k => slug(k[0]) === id)) ? ALIAS[id] : id))].filter(validId); });
+    const ALL = Object.keys(CATS), LABEL = { simple: 'Basic', full: 'Full' };
+    const defaults = m => m === 'simple' ? [...SIMPLE] : ALL;
+    const selIds = m => st.cfg.sel[m] || defaults(m);
+    let draft = null; // unsaved edits in the category editor: { sel, mine }
+    const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+    const dirty = () => !!draft && (!sameSet(draft.sel, selIds(st.cfg.mode)) || JSON.stringify(draft.mine) !== JSON.stringify(st.cfg.mine));
+    let saveWarned = false;
+    const strip = (k, v) => (k === 'img' && typeof v === 'string' && v.startsWith('data:')) ? '' : v; // inline images stay out of storage
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st, strip)); } catch (e) { if (!saveWarned) { saveWarned = true; alert('Who Wins could not save to this browser (storage full or blocked). Your history may not persist.'); } } };
+    const snap = c => { const i = getCharImages(c)[0] || ''; return { name: c.name, series: c.series || '', img: i }; };
 
- // Categories currently in play, as [[groupTitle, [[name, desc], ...]], ...]
+ // Categories currently in play (the saved selection for the active setup)
     function groups() {
-      const c = st.cfg;
-      const on = c.mode === 'simple' ? SIMPLE : c.mode === 'custom' ? new Set(c.custom || []) : null;
-      const g = GROUPS.map(x => [x[0], x[1].filter(k => !on || on.has(slug(k[0])))]);
-      if (c.mode === 'custom') g.push(['My Categories', c.mine.filter(k => on.has(slug(k[0])))]);
+      const c = st.cfg, on = new Set(selIds(c.mode));
+      const g = GROUPS.map(x => [x[0], x[1].filter(k => on.has(slug(k[0])))]);
+      g.push(['My Categories', c.mine.filter(k => on.has(slug(k[0])))]);
       return g.filter(x => x[1].length);
     }
     const activeIds = () => new Set(groups().flatMap(g => g[1].map(k => slug(k[0]))));
-    const tally = (p, ids) => { const v = Object.keys(p).filter(id => !ids || ids.has(id)).map(id => p[id]); const a = v.filter(k => k === 'a').length; return [a, v.length - a]; };
+    const tally = (p, ids) => { const v = Object.keys(p).filter(id => !ids || ids.has(id)).map(id => p[id]); const c = k => v.filter(x => x === k).length; return [c('a'), c('b'), c('d')]; };
 
     function newPair() {
       const pool = filteredChars().filter(c => getCharImages(c).length);
@@ -10722,9 +10779,9 @@
     }
 
     function updateScore() {
-      const { a, b, picks } = st.cur, ids = activeIds(), [na, nb] = tally(picks, ids);
-      $('vs-score').textContent = (na + nb) ? `${a.name} ${na} - ${nb} ${b.name}  ·  ${na + nb}/${ids.size} picked` : `0/${ids.size} picked`;
-      $('vs-save').disabled = !(na + nb);
+      const { a, b, picks } = st.cur, ids = activeIds(), [na, nb, nd] = tally(picks, ids), n = na + nb + nd;
+      $('vs-score').textContent = n ? `${a.name} ${na} - ${nb} ${b.name}${nd ? '  ·  ' + nd + (nd > 1 ? ' draws' : ' draw') : ''}  ·  ${n}/${ids.size} picked` : `0/${ids.size} picked`;
+      $('vs-save').disabled = !n;
       const gs = groups();
       document.querySelectorAll('#vs-cats .vs-grp').forEach((g, i) => {
         g.querySelector('.vs-gc').textContent = gs[i][1].filter(k => picks[slug(k[0])]).length + '/' + gs[i][1].length;
@@ -10732,7 +10789,7 @@
     }
 
     function render() {
-      $('vs-sub').textContent = 'Pick who wins each category. It\'s your opinion, so there are no wrong answers. Skip any you can\'t judge.';
+      $('vs-sub').textContent = 'Pick who wins each category, or Draw if they are about even. It\'s your opinion, so there are no wrong answers. Skip any you can\'t judge.';
       if (!st.cur && !newPair()) {
         $('vs-fighters').innerHTML = '<div class="sop-empty">Not enough characters in the pool. Try changing the filters.</div>';
         $('vs-cats').innerHTML = ''; $('vs-score').textContent = ''; $('vs-save').disabled = true;
@@ -10741,28 +10798,48 @@
       const { a, b, picks } = st.cur;
       const card = (f, k) => `<div class="vs-fighter"><img src="${esc2(f.img || PH)}" alt="${esc2(f.name)}" data-k="${k}" onerror="this.onerror=null;this.src='${PH}'"><div class="vs-fname">${esc2(f.name)}</div><div class="vs-fseries">${esc2(f.series)}</div></div>`;
       $('vs-fighters').innerHTML = card(a, 'a') + '<div class="vs-x">VS</div>' + card(b, 'b');
-      const opt = (k, id) => `<button type="button" class="vs-opt${picks[id] === k ? ' on' : ''}" data-c="${id}" data-k="${k}"><img src="${esc2(st.cur[k].img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"><span>${esc2(st.cur[k].name)}</span></button>`;
+      const opt = (k, id) => `<button type="button" class="vs-opt${picks[id] === k ? ' on' : ''}" aria-pressed="${picks[id] === k}" data-c="${id}" data-k="${k}"><img src="${esc2(st.cur[k].img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"><span>${esc2(st.cur[k].name)}</span></button>`;
+      const drawBtn = id => `<button type="button" class="vs-opt vs-draw${picks[id] === 'd' ? ' on' : ''}" aria-pressed="${picks[id] === 'd'}\" data-c="${id}" data-k="d">Draw</button>`;
       const gs = groups();
       $('vs-cats').innerHTML = gs.length ? gs.map(g => `<div class="vs-grp"><div class="vs-grp-h"><span>${g[0]}</span><span class="vs-gc"></span></div>` +
-        g[1].map(c => { const id = slug(c[0]); return `<div class="vs-cat"><div class="vs-cat-n">${esc2(c[0])}</div>${c[1] ? `<div class="vs-cat-d">${esc2(c[1])}</div>` : ''}<div class="vs-opts">${opt('a', id)}${opt('b', id)}</div></div>`; }).join('') + '</div>').join('')
+        g[1].map(c => { const id = slug(c[0]); return `<div class="vs-cat"><div class="vs-cat-n">${esc2(c[0])}</div>${c[1] ? `<div class="vs-cat-d">${esc2(c[1])}</div>` : ''}<div class="vs-opts">${opt('a', id)}${drawBtn(id)}${opt('b', id)}</div></div>`; }).join('') + '</div>').join('')
         : '<div class="sop-empty">No categories selected. Open "Edit categories" above and pick some.</div>';
       updateScore();
     }
 
- // Preset buttons + custom editor
+ // Basic / Full buttons and the category editor (edits stay a draft until Save)
     function renderCfg() {
       const c = st.cfg;
-      const btn = (m, label) => `<button type="button" class="sop-tab${c.mode === m ? ' active' : ''}" data-m="${m}">${label}</button>`;
-      $('vs-cfg').innerHTML = btn('simple', `Simple · ${SIMPLE.size}`) + btn('full', `Full · ${Object.keys(CATS).length}`) + btn('custom', 'Custom' + (c.custom ? ` · ${c.custom.length}` : ''));
-      $('vs-edit').style.display = c.mode === 'custom' ? '' : 'none';
-      if (c.mode !== 'custom') return;
-      $('vs-edit-sum').textContent = `Edit categories · ${c.custom.length} selected`;
-      const on = new Set(c.custom);
-      const chip = (k, mine) => { const id = slug(k[0]); return `<button type="button" class="vs-chip${on.has(id) ? ' on' : ''}" data-t="${id}" title="${esc2(k[1])}">${esc2(k[0])}</button>` + (mine ? `<button type="button" class="vs-chip rm" data-rm="${id}" title="Delete this category">✕</button>` : ''); };
-      $('vs-edit-body').innerHTML = GROUPS.map((g, i) => `<div class="vs-eg"><div class="vs-eg-h"><span>${g[0]}</span><span><button type="button" class="vs-lnk" data-g="${i}" data-a="all">All</button> · <button type="button" class="vs-lnk" data-g="${i}" data-a="none">None</button></span></div><div class="vs-chips">${g[1].map(k => chip(k)).join('')}</div></div>`).join('') +
-        `<div class="vs-eg"><div class="vs-eg-h"><span>My Categories</span></div><div class="vs-chips">${c.mine.map(k => chip(k, true)).join('') || '<span class="vs-cat-d">None yet. Add your own below.</span>'}</div><input class="vs-in" id="vs-add-n" maxlength="40" placeholder="Category name"><input class="vs-in" id="vs-add-d" maxlength="120" placeholder="What it means (optional)"><button type="button" class="vs-btn" id="vs-add" style="flex:none;padding:8px">+ Add category</button></div>`;
+      const btn = m => `<button type="button" class="sop-tab${c.mode === m ? ' active' : ''}" data-m="${m}">${LABEL[m]} · ${selIds(m).length}${c.sel[m] ? ' (edited)' : ''}</button>`;
+      $('vs-cfg').innerHTML = btn('simple') + btn('full');
+      renderEditor();
     }
-    function refresh() { save(); renderCfg(); render(); }
+    function renderEditor() {
+      const c = st.cfg, d = draft || { sel: selIds(c.mode), mine: c.mine }, on = new Set(d.sel), dt = dirty();
+      $('vs-edit-sum').textContent = `Edit categories · ${d.sel.length} selected${dt ? ' (unsaved)' : ''}`;
+      const chip = (k, mine) => { const id = slug(k[0]); return `<button type="button" class="vs-chip${on.has(id) ? ' on' : ''}" aria-pressed="${on.has(id)}" data-t="${id}" title="${esc2(k[1])}">${esc2(k[0])}</button>` + (mine ? `<button type="button" class="vs-chip rm" data-rm="${id}" title="Delete this category">✕</button>` : ''); };
+      $('vs-edit-body').innerHTML =
+        `<div class="vs-edit-bar"><span class="vs-cat-d">${dt ? 'Unsaved' : c.sel[c.mode] ? 'Edited' : 'Default'}</span><button type="button" class="vs-btn" id="vs-cfg-reset"${(c.sel[c.mode] || dt) ? '' : ' disabled'}>Reset to default</button><button type="button" class="vs-btn main" id="vs-cfg-save"${dt ? '' : ' disabled'}>Save changes</button></div>` +
+        GROUPS.map((g, i) => `<div class="vs-eg"><div class="vs-eg-h"><span>${g[0]}</span><span><button type="button" class="vs-lnk" data-g="${i}" data-a="all">All</button> · <button type="button" class="vs-lnk" data-g="${i}" data-a="none">None</button></span></div><div class="vs-chips">${g[1].map(k => chip(k)).join('')}</div></div>`).join('') +
+        `<div class="vs-eg"><div class="vs-eg-h"><span>My Categories</span></div><div class="vs-chips">${d.mine.map(k => chip(k, true)).join('') || '<span class="vs-cat-d">None yet. Add your own below.</span>'}</div><input class="vs-in" id="vs-add-n" maxlength="40" placeholder="Category name"><input class="vs-in" id="vs-add-d" maxlength="120" placeholder="What it means (optional)"><button type="button" class="vs-btn" id="vs-add" style="flex:none;padding:8px">+ Add category</button></div>`;
+    }
+    function edit(fn) {
+      if (!draft) draft = { sel: [...selIds(st.cfg.mode)], mine: st.cfg.mine.map(k => [...k]) };
+      fn(draft); renderEditor();
+    }
+    function saveCfg() {
+      if (!draft) return;
+      const m = st.cfg.mode;
+      st.cfg.mine = draft.mine;
+      st.cfg.sel[m] = sameSet(draft.sel, defaults(m)) ? null : draft.sel;
+      ['simple', 'full'].forEach(x => { if (st.cfg.sel[x]) st.cfg.sel[x] = st.cfg.sel[x].filter(validId); });
+      draft = null; save(); renderCfg(); render();
+    }
+    function resetCfg() {
+      const m = st.cfg.mode;
+      if (!confirm(`Reset ${LABEL[m]} to its default categories?`)) return;
+      st.cfg.sel[m] = null; draft = null; save(); renderCfg(); render();
+    }
 
     function renderHist() {
       const m = st.matches, h = $('vs-hist');
@@ -10770,53 +10847,71 @@
       if (!m.length) { h.innerHTML = '<div class="sop-empty">No matchups saved yet. Finish one and it shows up here.</div>'; return; }
       h.innerHTML = '<div style="display:flex;justify-content:flex-end"><button type="button" class="vs-btn" id="vs-clear" style="flex:none;padding:6px 12px;font-size:.75rem">Clear all</button></div>' +
         m.map((x, i) => {
-          const [na, nb] = tally(x.picks);
+          const [na, nb, nd] = tally(x.picks);
           const w = na > nb ? x.a.name + ' wins' : nb > na ? x.b.name + ' wins' : 'Tie';
           const ord = [...Object.keys(CATS), ...Object.keys(x.picks).filter(id => !CATS[id])];
-          const rows = ord.filter(id => x.picks[id]).map(id => `<div class="vs-hr"><span>${esc2(CATS[id] || (x.cn && x.cn[id]) || LEGACY[id] || id)}</span><b>${esc2(x[x.picks[id]].name)}</b></div>`).join('');
-          return `<details class="vs-hi"><summary><img src="${esc2(x.a.img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"><div class="vs-hi-t"><div class="vs-hi-n">${esc2(x.a.name)} vs ${esc2(x.b.name)}</div><div class="vs-hi-s">${na} - ${nb} · ${esc2(w)} · ${new Date(x.t).toLocaleDateString()}</div></div><img src="${esc2(x.b.img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"></summary><div class="vs-hb">${rows}<button type="button" class="vs-btn" data-del="${i}" style="flex:none;margin-top:6px;padding:6px;font-size:.75rem">Delete this matchup</button></div></details>`;
+          const rows = ord.filter(id => x.picks[id]).map(id => `<div class="vs-hr"><span>${esc2(CATS[id] || (x.cn && x.cn[id]) || LEGACY[id] || id)}</span><b>${esc2(x.picks[id] === 'd' ? 'Draw' : x[x.picks[id]].name)}</b></div>`).join('');
+          return `<details class="vs-hi"><summary><img src="${esc2(x.a.img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"><div class="vs-hi-t"><div class="vs-hi-n">${esc2(x.a.name)} vs ${esc2(x.b.name)}</div><div class="vs-hi-s">${na} - ${nb}${nd ? ' · ' + nd + (nd > 1 ? ' draws' : ' draw') : ''} · ${esc2(w)} · ${new Date(x.t).toLocaleDateString()}</div></div><img src="${esc2(x.b.img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"></summary><div class="vs-hb">${rows}<button type="button" class="vs-btn" data-del="${i}" style="flex:none;margin-top:6px;padding:6px;font-size:.75rem">Delete this matchup</button></div></details>`;
         }).join('');
     }
 
-    function tab(hist) {
-      $('vs-tab-play').classList.toggle('active', !hist);
-      $('vs-tab-hist').classList.toggle('active', hist);
-      $('vs-play').style.display = hist ? 'none' : 'flex';
-      $('vs-hist').style.display = hist ? 'flex' : 'none';
-      if (hist) renderHist();
+ // Rankings built from saved matchups. A matchup is a win for whoever won more categories (draws count as half).
+    let rankCat = 'all';
+    function renderRank() {
+      const m = st.matches, el = $('vs-rank');
+      if (!m.length) { el.innerHTML = '<div class="sop-empty">Save a few matchups and the rankings show up here.</div>'; return; }
+      const nameOf = id => CATS[id] || (m.find(x => x.cn && x.cn[id]) || { cn: {} }).cn[id] || LEGACY[id] || id;
+      const present = new Set(); m.forEach(x => Object.keys(x.picks).forEach(id => present.add(id)));
+      const ids = [...Object.keys(CATS), ...[...present].filter(id => !CATS[id])].filter(id => present.has(id));
+      if (rankCat !== 'all' && !present.has(rankCat)) rankCat = 'all';
+      const rec = {};
+      const add = (f, r) => { const k = f.name + '|' + f.series; const e = rec[k] || (rec[k] = { name: f.name, series: f.series, img: '', w: 0, l: 0, d: 0 }); if (f.img) e.img = f.img; e[r]++; };
+      const result = (x, side) => { if (side === 'a') { add(x.a, 'w'); add(x.b, 'l'); } else if (side === 'b') { add(x.b, 'w'); add(x.a, 'l'); } else { add(x.a, 'd'); add(x.b, 'd'); } };
+      m.forEach(x => {
+        if (rankCat === 'all') { const [na, nb] = tally(x.picks); result(x, na > nb ? 'a' : nb > na ? 'b' : 'd'); }
+        else if (x.picks[rankCat]) result(x, x.picks[rankCat]);
+      });
+      const rows = Object.values(rec).map(e => { const n = e.w + e.l + e.d; return { ...e, pct: Math.round(100 * (e.w + e.d / 2) / n) }; })
+        .sort((a, b) => b.w - a.w || b.pct - a.pct || a.l - b.l || a.name.localeCompare(b.name));
+      el.innerHTML = `<select id="vs-rank-cat" class="vs-in"><option value="all">Overall (whole matchups)</option>${ids.map(id => `<option value="${esc2(id)}"${id === rankCat ? ' selected' : ''}>${esc2(nameOf(id))}</option>`).join('')}</select>` +
+        `<div class="vs-sub">${rankCat === 'all' ? 'A matchup counts as a win for whoever won more categories.' : 'Only counts matchups where you picked this category.'} Record is wins-losses-draws, ranked by wins then win rate.</div>` +
+        rows.map((e, i) => `<div class="vs-rk"><span class="vs-rk-n">${i + 1}</span><img src="${esc2(e.img || PH)}" alt="" onerror="this.onerror=null;this.src='${PH}'"><div class="vs-hi-t"><div class="vs-hi-n">${esc2(e.name)}</div><div class="vs-hi-s">${esc2(e.series)}</div></div><div class="vs-rk-r"><b>${e.w}-${e.l}-${e.d}</b><span>${e.pct}%</span></div></div>`).join('');
     }
 
-    $('vs-tab-play').addEventListener('click', () => tab(false));
-    $('vs-tab-hist').addEventListener('click', () => tab(true));
+    function tab(name) {
+      ['play', 'hist', 'rank'].forEach(n => {
+        $('vs-tab-' + n).classList.toggle('active', n === name);
+        $('vs-' + n).style.display = n === name ? 'flex' : 'none';
+      });
+      if (name === 'hist') renderHist();
+      if (name === 'rank') renderRank();
+    }
+
+    $('vs-tab-play').addEventListener('click', () => tab('play'));
+    $('vs-tab-hist').addEventListener('click', () => tab('hist'));
+    $('vs-tab-rank').addEventListener('click', () => tab('rank'));
+    $('vs-rank').addEventListener('change', ev => { if (ev.target.id === 'vs-rank-cat') { rankCat = ev.target.value; renderRank(); } });
 
     $('vs-cfg').addEventListener('click', ev => {
       const b = ev.target.closest('[data-m]');
-      if (!b) return;
-      const c = st.cfg;
-      if (b.dataset.m === 'custom' && !c.custom) c.custom = [...activeIds(), ...c.mine.map(k => slug(k[0]))]; // start from what you were playing
-      c.mode = b.dataset.m;
-      refresh();
+      if (!b || b.dataset.m === st.cfg.mode) return;
+      if (dirty() && !confirm('Discard your unsaved category changes?')) return;
+      draft = null; st.cfg.mode = b.dataset.m; save(); renderCfg(); render();
     });
 
     $('vs-edit-body').addEventListener('click', ev => {
-      const c = st.cfg, t = ev.target;
-      const tg = t.closest('[data-t]'), rm = t.closest('[data-rm]'), g = t.closest('[data-g]');
-      if (tg) {
-        const id = tg.dataset.t;
-        c.custom = c.custom.includes(id) ? c.custom.filter(x => x !== id) : [...c.custom, id];
-      } else if (rm) {
-        const id = rm.dataset.rm;
-        c.mine = c.mine.filter(k => slug(k[0]) !== id); c.custom = c.custom.filter(x => x !== id);
-      } else if (g) {
-        const ids = GROUPS[+g.dataset.g][1].map(k => slug(k[0])), rest = c.custom.filter(x => !ids.includes(x));
-        c.custom = g.dataset.a === 'all' ? [...rest, ...ids] : rest;
-      } else if (t.id === 'vs-add') {
-        const n = $('vs-add-n').value.trim(), d = $('vs-add-d').value.trim(), id = slug(n);
+      const t = ev.target, tg = t.closest('[data-t]'), rm = t.closest('[data-rm]'), g = t.closest('[data-g]');
+      if (tg) edit(d => { const id = tg.dataset.t; d.sel = d.sel.includes(id) ? d.sel.filter(x => x !== id) : [...d.sel, id]; });
+      else if (rm) edit(d => { const id = rm.dataset.rm; d.mine = d.mine.filter(k => slug(k[0]) !== id); d.sel = d.sel.filter(x => x !== id); });
+      else if (g) edit(d => { const ids = GROUPS[+g.dataset.g][1].map(k => slug(k[0])), rest = d.sel.filter(x => !ids.includes(x)); d.sel = g.dataset.a === 'all' ? [...rest, ...ids] : rest; });
+      else if (t.id === 'vs-add') {
+        const n = $('vs-add-n').value.trim(), desc = $('vs-add-d').value.trim(), id = slug(n), mineNow = draft ? draft.mine : st.cfg.mine;
         if (!n || id === '-') { alert('Enter a category name.'); return; }
-        if (CATS[id] || c.mine.some(k => slug(k[0]) === id)) { alert('That category already exists.'); return; }
-        c.mine.push([n, d]); c.custom.push(id);
-      } else return;
-      refresh();
+        if (CATS[id] || mineNow.some(k => slug(k[0]) === id)) { alert('That category already exists.'); return; }
+        edit(d => { d.mine.push([n, desc]); d.sel.push(id); });
+      }
+      else if (t.id === 'vs-cfg-save') saveCfg();
+      else if (t.id === 'vs-cfg-reset') resetCfg();
     });
 
     $('vs-fighters').addEventListener('click', ev => {
@@ -10829,7 +10924,7 @@
       if (!b || !st.cur) return;
       const id = b.dataset.c, k = b.dataset.k, p = st.cur.picks;
       if (p[id] === k) delete p[id]; else p[id] = k;
-      b.parentNode.querySelectorAll('.vs-opt').forEach(o => o.classList.toggle('on', p[id] === o.dataset.k));
+      b.parentNode.querySelectorAll('.vs-opt').forEach(o => { o.classList.toggle('on', p[id] === o.dataset.k); o.setAttribute('aria-pressed', p[id] === o.dataset.k); });
       save(); updateScore();
     });
 
@@ -10843,12 +10938,12 @@
       const { a, b, picks } = st.cur, ids = activeIds(), ap = {}, cn = {};
       Object.keys(picks).forEach(id => { if (ids.has(id)) ap[id] = picks[id]; }); // only categories currently in play
       st.cfg.mine.forEach(k => { const id = slug(k[0]); if (ap[id]) cn[id] = k[0]; });
-      const [na, nb] = tally(ap);
-      if (!na && !nb) return;
+      const [na, nb, nd] = tally(ap);
+      if (!na && !nb && !nd) return;
       st.matches.unshift({ t: Date.now(), a, b, picks: ap, cn });
       st.cur = null; newPair(); save();
       render(); renderHist(); window.scrollTo(0, 0);
-      $('vs-sub').textContent = 'Saved: ' + (na > nb ? `${a.name} beat ${b.name}` : nb > na ? `${b.name} beat ${a.name}` : `${a.name} and ${b.name} tied`) + ` (${Math.max(na, nb)}-${Math.min(na, nb)}).`;
+      $('vs-sub').textContent = 'Saved: ' + (na > nb ? `${a.name} beat ${b.name}` : nb > na ? `${b.name} beat ${a.name}` : `${a.name} and ${b.name} tied`) + ` (${Math.max(na, nb)}-${Math.min(na, nb)}${nd ? ', ' + nd + (nd > 1 ? ' draws' : ' draw') : ''}).`;
     });
 
     $('vs-hist').addEventListener('click', ev => {
@@ -10860,10 +10955,16 @@
       if (d && confirm('Delete this matchup?')) { st.matches.splice(+d.dataset.del, 1); save(); renderHist(); }
     });
 
-    window._vsInit = () => { renderCfg(); render(); renderHist(); };
+ // Keep the current matchup (and its picks) unless a filter has made it invalid
+    function refreshPair() {
+      if (!(window.CHARACTERS || []).length) return; // characters have not loaded yet: leave a saved matchup alone
+      const pool = new Set(filteredChars().filter(c => getCharImages(c).length).map(c => c.name));
+      if (!(st.cur && pool.has(st.cur.a.name) && pool.has(st.cur.b.name))) newPair();
+    }
+    window._vsInit = () => { refreshPair(); renderCfg(); render(); renderHist(); };
     window._vsReset = () => {
       const s = $('versus-section');
-      if (s && s.classList.contains('active')) { newPair(); render(); }
+      if (s && s.classList.contains('active')) { refreshPair(); render(); }
     };
     renderCfg();
     renderHist();
